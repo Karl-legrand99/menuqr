@@ -1,34 +1,60 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { demoRestaurant, demoCategories } from "@/lib/demoData"
 
 export default function PublicMenuPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const slug = params.slug as string
+  const isDemo = searchParams.get("demo") === "true"
+
   const [restaurant, setRestaurant] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
-    if (slug) {
-      fetch(`/api/menu/${slug}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setRestaurant(data)
-          setLoading(false)
-          // Track menu view
-          fetch(`/api/analytics/${slug}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
-          }).catch(() => {})
-        })
-        .catch(() => setLoading(false))
+    if (!slug) {
+      setLoading(false)
+      return
     }
-  }, [slug])
+
+    if (isDemo) {
+      // Use mock demo data
+      const demoData = {
+        ...demoRestaurant,
+        categories: demoCategories.map((cat) => ({
+          ...cat,
+          items: cat.items.map((item) => ({
+            ...item,
+            allergens: [],
+            isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",
+            isAvailable: true,
+          })),
+        })),
+      }
+      setRestaurant(demoData)
+      setLoading(false)
+      return
+    }
+
+    fetch(`/api/menu/${slug}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setRestaurant(data)
+        setLoading(false)
+        // Track menu view
+        fetch(`/api/analytics/${slug}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }).catch(() => {})
+      })
+      .catch(() => setLoading(false))
+  }, [slug, isDemo])
 
   if (loading) {
     return (
@@ -49,7 +75,7 @@ export default function PublicMenuPage() {
     )
   }
 
-  const allAllergens: string[] = [...new Set<string>(restaurant.categories.flatMap((c: any) => c.items.flatMap((i: any) => i.allergens as string[])))]
+  const allAllergens: string[] = [...new Set<string>(restaurant.categories.flatMap((c: any) => c.items.flatMap((i: any) => (i.allergens || []) as string[])))]
 
   const filteredCategories = restaurant.categories.map((category: any) => ({
     ...category,
@@ -59,7 +85,7 @@ export default function PublicMenuPage() {
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
       if (!matchesSearch) return false
       if (selectedAllergens.length === 0) return true
-      return !selectedAllergens.some((allergen) => item.allergens.includes(allergen))
+      return !selectedAllergens.some((allergen) => (item.allergens || []).includes(allergen))
     }),
   })).filter((category: any) => category.items.length > 0)
 
@@ -84,7 +110,7 @@ export default function PublicMenuPage() {
         {restaurant.orderEnabled && (
           <div className="mt-4">
             <Link
-              href={`/r/${slug}/order`}
+              href={`/r/${slug}/order${isDemo ? "?demo=true" : ""}`}
               className="inline-block bg-white text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg"
             >
               🛒 Commander en ligne
@@ -93,12 +119,19 @@ export default function PublicMenuPage() {
         )}
         <div className="mt-4">
           <Link
-            href={`/r/${slug}/reserver`}
+            href={`/r/${slug}/reserver${isDemo ? "?demo=true" : ""}`}
             className="inline-block bg-white/20 text-white border border-white/40 px-6 py-3 rounded-lg font-semibold hover:bg-white/30 transition-colors shadow-lg"
           >
             📅 Réserver une table
           </Link>
         </div>
+        {isDemo && (
+          <div className="mt-4">
+            <span className="inline-block bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full text-sm font-bold">
+              🎮 Mode Démo
+            </span>
+          </div>
+        )}
       </header>
 
       {/* Allergen Filter */}
@@ -187,7 +220,7 @@ export default function PublicMenuPage() {
                     {item.description && (
                       <p className="text-gray-600 mt-1">{item.description}</p>
                     )}
-                    {item.allergens.length > 0 && (
+                    {(item.allergens || []).length > 0 && (
                       <p className="text-sm text-red-600 mt-2">
                         Allergènes: {item.allergens.join(", ")}
                       </p>

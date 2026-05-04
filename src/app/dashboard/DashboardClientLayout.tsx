@@ -88,8 +88,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               <span className="text-xl sm:text-2xl font-bold text-orange-500">MenuQR</span>
             </div>
 
-            {/* Desktop nav */}
-            <div className="hidden md:flex items-center space-x-4">
+            {/* Desktop nav - explicit media query via style tag */}
+            <div className="desktop-nav items-center space-x-4">
               {navLinks.map((link) => (
                 <a
                   key={link.href}
@@ -107,7 +107,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Mobile menu button */}
-            <div className="flex items-center md:hidden">
+            <div className="mobile-menu-btn items-center">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="text-gray-700 hover:text-orange-500 p-2"
@@ -124,9 +124,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Mobile menu */}
+          {/* Mobile menu drawer */}
           {mobileMenuOpen && (
-            <div className="md:hidden pb-4">
+            <div className="mobile-drawer pb-4">
               <div className="flex flex-col space-y-2">
                 {navLinks.map((link) => (
                   <a
@@ -148,6 +148,30 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </nav>
+
+      {/* Responsive navbar styles via inline style tag */}
+      <style>{`
+        .desktop-nav {
+          display: none;
+        }
+        .mobile-menu-btn {
+          display: flex;
+        }
+        .mobile-drawer {
+          display: block;
+        }
+        @media (min-width: 768px) {
+          .desktop-nav {
+            display: flex !important;
+          }
+          .mobile-menu-btn {
+            display: none !important;
+          }
+          .mobile-drawer {
+            display: none !important;
+          }
+        }
+      `}</style>
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">

@@ -1,13 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { demoRestaurant, demoTables } from "@/lib/demoData"
 
 export default function ReservationPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const slug = params.slug as string
+  const isDemo = searchParams.get("demo") === "true"
 
   const [restaurant, setRestaurant] = useState<any>(null)
   const [tables, setTables] = useState<any[]>([])
@@ -25,6 +28,18 @@ export default function ReservationPage() {
   const [notes, setNotes] = useState("")
 
   useEffect(() => {
+    if (!slug) {
+      setLoading(false)
+      return
+    }
+
+    if (isDemo) {
+      setRestaurant(demoRestaurant)
+      setTables(demoTables)
+      setLoading(false)
+      return
+    }
+
     if (slug) {
       fetch(`/api/menu/${slug}`)
         .then((res) => res.json())
@@ -51,7 +66,7 @@ export default function ReservationPage() {
           setLoading(false)
         })
     }
-  }, [slug])
+  }, [slug, isDemo])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,6 +78,14 @@ export default function ReservationPage() {
     }
 
     setSubmitting(true)
+
+    if (isDemo) {
+      setTimeout(() => {
+        setSuccess(true)
+        setSubmitting(false)
+      }, 1500)
+      return
+    }
 
     try {
       const res = await fetch("/api/reservations", {
@@ -130,7 +153,7 @@ export default function ReservationPage() {
               Votre demande de réservation a bien été transmise au restaurant. Vous serez contacté pour confirmation.
             </p>
             <Link
-              href={`/r/${slug}`}
+              href={`/r/${slug}${isDemo ? "?demo=true" : ""}`}
               className="inline-block bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600"
             >
               Retour au menu
@@ -151,6 +174,13 @@ export default function ReservationPage() {
       >
         <h1 className="text-3xl font-bold text-white mb-1">{restaurant.name}</h1>
         <p className="text-white/80">Réserver une table</p>
+        {isDemo && (
+          <div className="mt-2">
+            <span className="inline-block bg-yellow-400 text-yellow-900 px-4 py-1 rounded-full text-sm font-bold">
+              🎮 Mode Démo
+            </span>
+          </div>
+        )}
       </header>
 
       <main className="max-w-xl mx-auto px-4 py-6 pb-12">
@@ -259,7 +289,7 @@ export default function ReservationPage() {
           </button>
 
           <Link
-            href={`/r/${slug}`}
+            href={`/r/${slug}${isDemo ? "?demo=true" : ""}`}
             className="block text-center text-sm text-gray-500 hover:text-gray-700 underline"
           >
             Retour au menu

@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { demoRestaurant, demoCategories, demoTables } from "@/lib/demoData"
 
 interface OrderItem {
   id: string
@@ -14,8 +15,10 @@ interface OrderItem {
 
 export default function OrderPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const slug = params.slug as string
+  const isDemo = searchParams.get("demo") === "true"
 
   const [restaurant, setRestaurant] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -28,22 +31,43 @@ export default function OrderPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    if (slug) {
-      fetch(`/api/menu/${slug}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.error) {
-            setRestaurant(null)
-          } else {
-            setRestaurant(data)
-          }
-          setLoading(false)
-        })
-        .catch(() => {
-          setLoading(false)
-        })
+    if (!slug) {
+      setLoading(false)
+      return
     }
-  }, [slug])
+
+    if (isDemo) {
+      const demoData = {
+        ...demoRestaurant,
+        categories: demoCategories.map((cat) => ({
+          ...cat,
+          items: cat.items.map((item) => ({
+            ...item,
+            allergens: [],
+            isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",
+            isAvailable: true,
+          })),
+        })),
+      }
+      setRestaurant(demoData)
+      setLoading(false)
+      return
+    }
+
+    fetch(`/api/menu/${slug}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          setRestaurant(null)
+        } else {
+          setRestaurant(data)
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        setLoading(false)
+      })
+  }, [slug, isDemo])
 
   const addToCart = (item: any) => {
     setCart((prev) => {
@@ -95,6 +119,14 @@ export default function OrderPage() {
     }
 
     setSubmitting(true)
+
+    if (isDemo) {
+      // Simulate demo order success
+      setTimeout(() => {
+        router.push(`/r/${slug}?demo=true`)
+      }, 1500)
+      return
+    }
 
     try {
       // Create Stripe Payment Link
@@ -175,7 +207,7 @@ export default function OrderPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Commande non disponible</h1>
           <p className="text-gray-600 mb-4">Ce restaurant n'accepte pas les commandes en ligne pour le moment.</p>
-          <Link href={`/r/${slug}`} className="text-orange-500 hover:text-orange-600 underline">
+          <Link href={`/r/${slug}${isDemo ? "?demo=true" : ""}`} className="text-orange-500 hover:text-orange-600 underline">
             Retour au menu
           </Link>
         </div>
@@ -194,6 +226,13 @@ export default function OrderPage() {
       >
         <h1 className="text-3xl font-bold text-white mb-1">{restaurant.name}</h1>
         <p className="text-white/80">Commander en ligne</p>
+        {isDemo && (
+          <div className="mt-2">
+            <span className="inline-block bg-yellow-400 text-yellow-900 px-4 py-1 rounded-full text-sm font-bold">
+              🎮 Mode Démo
+            </span>
+          </div>
+        )}
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-12">
@@ -330,7 +369,7 @@ export default function OrderPage() {
               </button>
 
               <Link
-                href={`/r/${slug}`}
+                href={`/r/${slug}${isDemo ? "?demo=true" : ""}`}
                 className="block text-center text-sm text-gray-500 hover:text-gray-700 underline"
               >
                 Retour au menu
