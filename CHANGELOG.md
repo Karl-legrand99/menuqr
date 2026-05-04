@@ -1,5 +1,16 @@
 # MenuQR Changelog
 
+## v0.4.2 — 2026-05-04
+
+### ✅ Persistance localStorage en mode démo
+- `demoData.ts` : ajout de `getDemoCategories()` / `setDemoCategories()` avec localStorage
+- `demoData.ts` : ajout de `getDemoOrders()` / `setDemoOrders()` avec localStorage
+- `demoData.ts` : ajout de `getDemoReservations()` / `setDemoReservations()` avec localStorage
+- **Dashboard Menu** : catégories et plats créés persistent après refresh
+- **Dashboard Commandes** : changements de statut persistent après refresh
+- **Dashboard Réservations** : changements de statut et assignations de table persistent après refresh
+- Clés localStorage : `menuqr-demo-categories`, `menuqr-demo-orders`, `menuqr-demo-reservations`
+
 ## v0.4.1 — 2026-05-04
 
 ### ✅ Navbar responsive
