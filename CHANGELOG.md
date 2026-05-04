@@ -1,5 +1,30 @@
 # MenuQR Changelog
 
+## v0.4.1 — 2026-05-04
+
+### ✅ Navbar responsive
+- Remplacement des classes Tailwind v4 problématiques par CSS custom avec media queries
+- `.desktop-nav` → flex sur ≥768px, none en dessous
+- `.mobile-menu-btn` → flex en dessous de 768px, none au-dessus
+- `.mobile-drawer` → drawer dépliant fonctionnel sur mobile
+
+### ✅ Landing page publique /r/[slug]
+- Menu complet avec catégories, plats, prix, descriptions
+- Badge "🎮 Mode Démo" visible
+- Recherche et filtres par allergènes
+- Boutons "Commander en ligne" et "Réserver une table"
+- Footer "Menu propulsé par MenuQR"
+
+### ✅ Commande en ligne /r/[slug]/order
+- Panier fonctionnel (ajout/suppression de plats)
+- Calcul du total en temps réel
+- Formulaire client (nom, téléphone, table, notes)
+- Bouton "Commander et payer" actif quand panier > 0
+
+### ✅ Réservation /r/[slug]/reserver
+- Affichage des tables disponibles
+- Formulaire de réservation simulé en mode démo
+
 ## v0.4.0 — 2026-05-04
 
 ### ✅ Mode Démo complet
@@ -16,11 +41,6 @@
 - **Analytics** : vues totales, vues journalières, plats populaires
 - **Paramètres** : infos restaurant, abonnement Stripe mock, toggle commandes en ligne
 - **QR Code** : QR code généré avec URL du menu, téléchargement PNG
-
-### 🟡 En cours
-- Responsive navbar (hamburger menu mobile) — CSS Tailwind v4 à vérifier
-- Persistance localStorage des données créées en mode démo
-- Landing page publique /r/[slug] avec vrai menu
 
 ## v0.3.1 — 2026-05-04
 
