@@ -4,10 +4,11 @@ import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useDemoMode } from "@/lib/demo"
 import { getDemoOrders, setDemoOrders } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 function OrdersPageContent() {
   const searchParams = useSearchParams()
-  const restaurantId = searchParams.get("restaurant")
+  const restaurantId = searchParams.get("restaurant") || "2dfc6711-a74d-4249-ac2d-63137c2c308c"
   const { isDemo, checked } = useDemoMode()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -16,8 +17,7 @@ function OrdersPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setOrders(getDemoOrders())
-      setLoading(false)
+      fetchSupabaseOrders()
       return
     }
     if (restaurantId) {
@@ -36,11 +36,58 @@ function OrdersPageContent() {
     }
   }, [restaurantId, isDemo, checked])
 
+  async function fetchSupabaseOrders() {
+    try {
+      const { data: ordersData, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+
+      // Fetch order items
+      const { data: orderItems, error: itemsError } = await supabase
+        .from("order_items")
+        .select("*")
+        .in("order_id", ordersData?.map(o => o.id) || [])
+
+      if (itemsError) throw itemsError
+
+      const enriched = ordersData?.map(order => ({
+        ...order,
+        items: orderItems?.filter(oi => oi.order_id === order.id).map(oi => ({
+          name: oi.item_name,
+          quantity: oi.quantity,
+          price: oi.unit_price
+        })) || []
+      })) || []
+
+      setOrders(enriched)
+    } catch (err) {
+      console.error("Supabase orders error:", err)
+      setOrders(getDemoOrders())
+    }
+    setLoading(false)
+  }
+
   const updateStatus = async (orderId: string, status: string) => {
     if (isDemo) {
-      const updated = orders.map((o) => (o.id === orderId ? { ...o, status } : o))
-      setOrders(updated)
-      setDemoOrders(updated)
+      try {
+        const { error } = await supabase
+          .from("orders")
+          .update({ status })
+          .eq("id", orderId)
+        
+        if (error) throw error
+        
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)))
+      } catch (err) {
+        console.error("Error updating status:", err)
+        const updated = orders.map((o) => (o.id === orderId ? { ...o, status } : o))
+        setOrders(updated)
+        setDemoOrders(updated)
+      }
       return
     }
     const res = await fetch(`/api/orders/${orderId}`, {

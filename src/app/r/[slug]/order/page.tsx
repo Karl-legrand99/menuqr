@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { demoRestaurant, demoCategories, demoTables } from "@/lib/demoData"
+import { demoRestaurant, getDemoCategories, demoTables } from "@/lib/demoData"
 
 interface OrderItem {
   id: string
@@ -37,11 +37,12 @@ export default function OrderPage() {
     }
 
     if (isDemo) {
+      const persistedCategories = getDemoCategories()
       const demoData = {
         ...demoRestaurant,
-        categories: demoCategories.map((cat) => ({
+        categories: persistedCategories.map((cat: any) => ({
           ...cat,
-          items: cat.items.map((item) => ({
+          items: cat.items.map((item: any) => ({
             ...item,
             allergens: [],
             isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",
@@ -121,7 +122,23 @@ export default function OrderPage() {
     setSubmitting(true)
 
     if (isDemo) {
-      // Simulate demo order success
+      // Simulate demo order success and persist to localStorage
+      const newOrder = {
+        id: "demo-order-" + Date.now(),
+        restaurantId: "demo-1",
+        customerName,
+        customerPhone,
+        tableNumber: tableNumber ? parseInt(tableNumber, 10) : null,
+        notes: notes || null,
+        status: "pending",
+        total,
+        createdAt: new Date().toISOString(),
+        items: cart.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
+        stripePaymentLink: null,
+      }
+      const { getDemoOrders, setDemoOrders } = await import("@/lib/demoData")
+      const updated = [newOrder, ...getDemoOrders()]
+      setDemoOrders(updated)
       setTimeout(() => {
         router.push(`/r/${slug}?demo=true`)
       }, 1500)

@@ -5,10 +5,11 @@ import { useSearchParams } from "next/navigation"
 import ImageUpload from "@/components/ImageUpload"
 import { useDemoMode } from "@/lib/demo"
 import { getDemoCategories, setDemoCategories } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 function MenuPageContent() {
   const searchParams = useSearchParams()
-  const restaurantId = searchParams.get("restaurant")
+  const restaurantId = searchParams.get("restaurant") || "2dfc6711-a74d-4249-ac2d-63137c2c308c"
   const { isDemo, checked } = useDemoMode()
   const [categories, setCategories] = useState<any[]>([])
   const [newCategory, setNewCategory] = useState("")
@@ -17,8 +18,8 @@ function MenuPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setCategories(getDemoCategories())
-      setLoading(false)
+      // Fetch from Supabase in demo mode
+      fetchSupabaseCategories()
       return
     }
     if (restaurantId) {
@@ -36,21 +37,70 @@ function MenuPageContent() {
     }
   }, [restaurantId, isDemo, checked])
 
+  async function fetchSupabaseCategories() {
+    try {
+      const { data: categoriesData, error: catError } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("sort_order", { ascending: true })
+      
+      if (catError) throw catError
+
+      const { data: itemsData, error: itemError } = await supabase
+        .from("items")
+        .select("*")
+        .in("category_id", categoriesData?.map(c => c.id) || [])
+
+      if (itemError) throw itemError
+
+      const enriched = categoriesData?.map(cat => ({
+        ...cat,
+        items: itemsData?.filter(item => item.category_id === cat.id) || []
+      })) || []
+
+      setCategories(enriched)
+    } catch (err) {
+      console.error("Supabase error:", err)
+      setCategories(getDemoCategories())
+    }
+    setLoading(false)
+  }
+
   const addCategory = async () => {
     if (!newCategory.trim()) return
 
     if (isDemo) {
-      const category = {
-        id: "demo-cat-" + Date.now(),
-        name: newCategory,
-        sortOrder: categories.length + 1,
-        restaurantId: "demo-1",
-        items: [],
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .insert({
+            restaurant_id: restaurantId,
+            name: newCategory,
+            sort_order: categories.length + 1
+          })
+          .select()
+          .single()
+        
+        if (error) throw error
+        
+        setCategories([...categories, { ...data, items: [] }])
+        setNewCategory("")
+      } catch (err) {
+        console.error("Error adding category:", err)
+        // Fallback to local demo
+        const category = {
+          id: "demo-cat-" + Date.now(),
+          name: newCategory,
+          sortOrder: categories.length + 1,
+          restaurantId: "demo-1",
+          items: [],
+        }
+        const updated = [...categories, category]
+        setCategories(updated)
+        setDemoCategories(updated)
+        setNewCategory("")
       }
-      const updated = [...categories, category]
-      setCategories(updated)
-      setDemoCategories(updated)
-      setNewCategory("")
       return
     }
 
@@ -113,7 +163,16 @@ function MenuPageContent() {
                         <p className="text-sm text-gray-600">{item.description}</p>
                       </div>
                     </div>
-                    <span className="font-bold text-orange-500">{item.price}€</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-orange-500">{item.price}€</span>
+                      <DeleteItemButton
+                        itemId={item.id}
+                        categoryId={category.id}
+                        isDemo={isDemo}
+                        categories={categories}
+                        setCategories={setCategories}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -132,6 +191,48 @@ export default function MenuPage() {
     <Suspense fallback={<div className="text-center py-10">Chargement...</div>}>
       <MenuPageContent />
     </Suspense>
+  )
+}
+
+function DeleteItemButton({ itemId, categoryId, isDemo, categories, setCategories }: { itemId: string, categoryId: string, isDemo?: boolean, categories: any[], setCategories: (c: any[]) => void }) {
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!confirm("Supprimer ce plat ?")) return
+    setDeleting(true)
+
+    if (isDemo) {
+      const updated = categories.map((c: any) =>
+        c.id === categoryId ? { ...c, items: c.items.filter((i: any) => i.id !== itemId) } : c
+      )
+      setCategories(updated)
+      setDemoCategories(updated)
+      setDeleting(false)
+      return
+    }
+
+    try {
+      const { error } = await supabase.from("items").delete().eq("id", itemId)
+      if (error) throw error
+      const updated = categories.map((c: any) =>
+        c.id === categoryId ? { ...c, items: c.items.filter((i: any) => i.id !== itemId) } : c
+      )
+      setCategories(updated)
+    } catch (err) {
+      console.error("Error deleting item:", err)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleDelete}
+      disabled={deleting}
+      className="text-red-500 hover:text-red-700 text-sm disabled:opacity-50"
+    >
+      {deleting ? "..." : "Supprimer"}
+    </button>
   )
 }
 
@@ -154,15 +255,51 @@ function AddItemForm({ categoryId, isDemo, categories, setCategories }: { catego
     }
 
     if (isDemo) {
-      const updated = categories.map((c: any) => 
-        c.id === categoryId ? { ...c, items: [...c.items, item] } : c
-      )
-      setCategories(updated)
-      setDemoCategories(updated)
-      setName("")
-      setDescription("")
-      setPrice("")
-      setImage(null)
+      try {
+        const { data, error } = await supabase
+          .from("items")
+          .insert({
+            category_id: categoryId,
+            name,
+            description,
+            price: parseFloat(price),
+            image,
+            popular: false
+          })
+          .select()
+          .single()
+        
+        if (error) throw error
+        
+        const updated = categories.map((c: any) => 
+          c.id === categoryId ? { ...c, items: [...c.items, data] } : c
+        )
+        setCategories(updated)
+        setName("")
+        setDescription("")
+        setPrice("")
+        setImage(null)
+      } catch (err) {
+        console.error("Error adding item:", err)
+        // Fallback local
+        const item = {
+          id: "demo-item-" + Date.now(),
+          categoryId,
+          name,
+          description,
+          price: parseFloat(price),
+          image,
+        }
+        const updated = categories.map((c: any) => 
+          c.id === categoryId ? { ...c, items: [...c.items, item] } : c
+        )
+        setCategories(updated)
+        setDemoCategories(updated)
+        setName("")
+        setDescription("")
+        setPrice("")
+        setImage(null)
+      }
       return
     }
     

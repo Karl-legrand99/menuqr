@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { demoRestaurant, demoTables } from "@/lib/demoData"
+import { demoRestaurant, getDemoReservations, setDemoReservations, demoTables } from "@/lib/demoData"
 
 export default function ReservationPage() {
   const params = useParams()
@@ -80,6 +80,23 @@ export default function ReservationPage() {
     setSubmitting(true)
 
     if (isDemo) {
+      const newReservation = {
+        id: "demo-res-" + Date.now(),
+        restaurantId: "demo-1",
+        customerName,
+        customerPhone,
+        customerEmail: customerEmail || null,
+        date,
+        time,
+        partySize: parseInt(partySize, 10),
+        notes: notes || null,
+        status: "pending",
+        tableId: null,
+        table: null,
+        createdAt: new Date().toISOString(),
+      }
+      const updated = [...getDemoReservations(), newReservation]
+      setDemoReservations(updated)
       setTimeout(() => {
         setSuccess(true)
         setSubmitting(false)

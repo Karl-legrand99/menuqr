@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { demoRestaurant, demoCategories } from "@/lib/demoData"
+import { demoRestaurant, getDemoCategories } from "@/lib/demoData"
 
 export default function PublicMenuPage() {
   const params = useParams()
@@ -23,12 +23,13 @@ export default function PublicMenuPage() {
     }
 
     if (isDemo) {
-      // Use mock demo data
+      // Use persisted demo data from localStorage
+      const persistedCategories = getDemoCategories()
       const demoData = {
         ...demoRestaurant,
-        categories: demoCategories.map((cat) => ({
+        categories: persistedCategories.map((cat: any) => ({
           ...cat,
-          items: cat.items.map((item) => ({
+          items: cat.items.map((item: any) => ({
             ...item,
             allergens: [],
             isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",

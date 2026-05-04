@@ -4,10 +4,11 @@ import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useDemoMode } from "@/lib/demo"
 import { demoReservations, demoTables, getDemoReservations, setDemoReservations } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 function ReservationsPageContent() {
   const searchParams = useSearchParams()
-  const restaurantId = searchParams.get("restaurant")
+  const restaurantId = searchParams.get("restaurant") || "2dfc6711-a74d-4249-ac2d-63137c2c308c"
   const { isDemo, checked } = useDemoMode()
   const [reservations, setReservations] = useState<any[]>([])
   const [tables, setTables] = useState<any[]>([])
@@ -21,9 +22,7 @@ function ReservationsPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setReservations(getDemoReservations())
-      setTables(demoTables)
-      setLoading(false)
+      fetchSupabaseData()
       return
     }
     if (restaurantId) {
@@ -46,11 +45,50 @@ function ReservationsPageContent() {
     }
   }, [restaurantId, isDemo, checked])
 
+  async function fetchSupabaseData() {
+    try {
+      const { data: resData, error: resError } = await supabase
+        .from("reservations")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("created_at", { ascending: false })
+
+      if (resError) throw resError
+
+      const { data: tblData, error: tblError } = await supabase
+        .from("tables")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+
+      if (tblError) throw tblError
+
+      setReservations(resData || [])
+      setTables(tblData || [])
+    } catch (err) {
+      console.error("Supabase reservations error:", err)
+      setReservations(getDemoReservations())
+      setTables(demoTables)
+    }
+    setLoading(false)
+  }
+
   const updateStatus = async (id: string, status: string) => {
     if (isDemo) {
-      const updated = reservations.map((r) => (r.id === id ? { ...r, status } : r))
-      setReservations(updated)
-      setDemoReservations(updated)
+      try {
+        const { error } = await supabase
+          .from("reservations")
+          .update({ status })
+          .eq("id", id)
+        
+        if (error) throw error
+        
+        setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+      } catch (err) {
+        console.error("Error updating reservation:", err)
+        const updated = reservations.map((r) => (r.id === id ? { ...r, status } : r))
+        setReservations(updated)
+        setDemoReservations(updated)
+      }
       return
     }
     const res = await fetch(`/api/reservations/${id}`, {
@@ -65,14 +103,31 @@ function ReservationsPageContent() {
 
   const assignTable = async (reservationId: string, tableId: string | null) => {
     if (isDemo) {
-      const table = tableId ? tables.find((t) => t.id === tableId) || null : null
-      const updated = reservations.map((r) =>
-        r.id === reservationId
-          ? { ...r, tableId: tableId || null, table }
-          : r
-      )
-      setReservations(updated)
-      setDemoReservations(updated)
+      try {
+        const { error } = await supabase
+          .from("reservations")
+          .update({ table_id: tableId })
+          .eq("id", reservationId)
+        
+        if (error) throw error
+        
+        const table = tableId ? tables.find((t) => t.id === tableId) || null : null
+        setReservations((prev) => prev.map((r) =>
+          r.id === reservationId
+            ? { ...r, table_id: tableId || null, table }
+            : r
+        ))
+      } catch (err) {
+        console.error("Error assigning table:", err)
+        const table = tableId ? tables.find((t) => t.id === tableId) || null : null
+        const updated = reservations.map((r) =>
+          r.id === reservationId
+            ? { ...r, tableId: tableId || null, table }
+            : r
+        )
+        setReservations(updated)
+        setDemoReservations(updated)
+      }
       return
     }
     const res = await fetch(`/api/reservations/${reservationId}`, {
@@ -91,19 +146,40 @@ function ReservationsPageContent() {
     if (!restaurantId && !isDemo) return
     if (!tableName || !tableCapacity) return
     if (isDemo) {
-      const table = {
-        id: "demo-table-" + Date.now(),
-        name: tableName,
-        capacity: parseInt(tableCapacity, 10),
-        position: tablePosition || null,
-        restaurantId: "demo-1",
+      try {
+        const { data, error } = await supabase
+          .from("tables")
+          .insert({
+            restaurant_id: restaurantId,
+            name: tableName,
+            capacity: parseInt(tableCapacity, 10),
+            position: tablePosition || null
+          })
+          .select()
+          .single()
+        
+        if (error) throw error
+        
+        setTables((prev) => [...prev, data])
+        setTableName("")
+        setTableCapacity("")
+        setTablePosition("")
+        setShowTableForm(false)
+      } catch (err) {
+        console.error("Error creating table:", err)
+        const table = {
+          id: "demo-table-" + Date.now(),
+          name: tableName,
+          capacity: parseInt(tableCapacity, 10),
+          position: tablePosition || null,
+          restaurantId: "demo-1",
+        }
+        setTables((prev) => [...prev, table])
+        setTableName("")
+        setTableCapacity("")
+        setTablePosition("")
+        setShowTableForm(false)
       }
-      const updated = [...tables, table]
-      setTables(updated)
-      setTableName("")
-      setTableCapacity("")
-      setTablePosition("")
-      setShowTableForm(false)
       return
     }
     const res = await fetch(`/api/restaurant/${restaurantId}/tables`, {
