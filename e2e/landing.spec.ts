@@ -28,9 +28,12 @@ test.describe("Landing page", () => {
   test("section Tarifs visible", async ({ page }) => {
     await page.goto("/")
 
+    // Scroll vers la section pricing
+    await page.locator("#pricing").scrollIntoViewIfNeeded()
+
     await expect(page.getByRole("heading", { name: "Tarifs simples et transparents" })).toBeVisible()
-    await expect(page.getByText("Basic")).toBeVisible()
-    await expect(page.getByText("Pro")).toBeVisible()
-    await expect(page.getByText("Premium")).toBeVisible()
+    await expect(page.getByText("Basic").first()).toBeVisible()
+    await expect(page.getByText("Pro").first()).toBeVisible()
+    await expect(page.getByText("Premium").first()).toBeVisible()
   })
 })
