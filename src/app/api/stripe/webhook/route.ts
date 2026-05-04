@@ -54,6 +54,22 @@ export async function POST(req: Request) {
       })
       break
     }
+
+    case "customer.subscription.updated": {
+      const subscription = event.data.object
+      const priceId = subscription.items.data[0]?.price.id
+      await prisma.subscription.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: {
+          status: subscription.status,
+          stripePriceId: priceId,
+          plan: getPlanFromPriceId(priceId),
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        },
+      })
+      break
+    }
   }
 
   return NextResponse.json({ received: true })

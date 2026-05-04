@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react"
 
 export type Locale = "fr" | "en" | "es"
 
@@ -8,34 +8,17 @@ interface I18nContextType {
   locale: Locale
   setLocale: (locale: Locale) => void
   t: (key: string) => string | Record<string, string>
+  isLoading: boolean
 }
 
 const I18nContext = createContext<I18nContextType | null>(null)
 
+// Synchronously load dictionaries at module init to avoid hydration mismatch
 const dictionaries: Record<Locale, Record<string, unknown>> = {
-  fr: {} as Record<string, unknown>,
-  en: {} as Record<string, unknown>,
-  es: {} as Record<string, unknown>,
+  fr: require("./fr.json"),
+  en: require("./en.json"),
+  es: require("./es.json"),
 }
-
-let loaded = false
-
-function loadDictionariesSync() {
-  if (loaded) return
-  try {
-    const fr = require("./fr.json")
-    const en = require("./en.json")
-    const es = require("./es.json")
-    dictionaries.fr = fr
-    dictionaries.en = en
-    dictionaries.es = es
-    loaded = true
-  } catch {
-    // fallback: leave empty
-  }
-}
-
-loadDictionariesSync()
 
 function getNestedValue(obj: Record<string, unknown>, path: string): string | Record<string, string> | undefined {
   const keys = path.split(".")
@@ -52,13 +35,35 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string | Re
   return undefined
 }
 
+function getInitialLocale(): Locale {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("menuqr-locale") as Locale | null
+    if (saved && ["fr", "en", "es"].includes(saved)) return saved
+    const browserLang = navigator.language.slice(0, 2)
+    if (["fr", "en", "es"].includes(browserLang)) return browserLang as Locale
+  }
+  return "fr"
+}
+
 export function I18nProvider({ children, defaultLocale = "fr" }: { children: ReactNode; defaultLocale?: Locale }) {
   const [locale, setLocaleState] = useState<Locale>(defaultLocale)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const initial = getInitialLocale()
+    setLocaleState(initial)
+    document.documentElement.lang = initial
+    setIsLoading(false)
+  }, [])
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale)
-    document.documentElement.lang = newLocale
-    localStorage.setItem("menuqr-locale", newLocale)
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = newLocale
+    }
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("menuqr-locale", newLocale)
+    }
   }, [])
 
   const t = useCallback(
@@ -73,7 +78,7 @@ export function I18nProvider({ children, defaultLocale = "fr" }: { children: Rea
     [locale]
   )
 
-  return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>
+  return <I18nContext.Provider value={{ locale, setLocale, t, isLoading }}>{children}</I18nContext.Provider>
 }
 
 export function useTranslation() {

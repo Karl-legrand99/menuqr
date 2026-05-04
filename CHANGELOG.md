@@ -1,5 +1,80 @@
 # MenuQR Changelog
 
+## v0.7.0 - 2026-05-04
+
+### ✅ Upload d'images — AMÉLIORÉ
+- API `/api/upload` : fallback local quand Cloudinary n'est pas configuré
+- Les images sont sauvegardées dans `public/uploads/` si Cloudinary est absent
+- Composant `ImageUpload.tsx` : utilise l'API locale au lieu de l'API Cloudinary directe
+- Upload fonctionnel même sans configuration Cloudinary
+
+### ✅ Tests E2E — STABILISÉ
+- 14/14 tests Playwright passent
+- Tests landing page : forçage de la langue FR via `localStorage` pour éviter les échecs i18n
+
+### 🔧 Fixes
+- Build Next.js stable
+- Déployé sur https://menuqr-ten.vercel.app
+
+---
+
+## v0.6.0 - 2026-05-04
+
+### ✅ PWA — AMÉLIORÉ
+- Icônes PNG créées (`icon-192x192.png`, `icon-512x512.png`) pour meilleure compatibilité PWA
+- `manifest.json` mis à jour pour utiliser les icônes PNG au lieu de SVG
+- Service Worker (`sw.js`) inchangé — cache-first fonctionnel
+
+### ✅ i18n — AMÉLIORÉ
+- Chargement synchrone des dictionnaires côté client pour éviter le flash de contenu
+- Détection de la langue du navigateur au premier chargement
+- Persistance dans `localStorage` améliorée
+- Hook `useTranslation` expose `isLoading` pour les états de chargement
+
+### ✅ Stripe Webhook — AMÉLIORÉ
+- Gestion de `customer.subscription.updated` ajoutée
+- Mise à jour automatique du plan, du statut et des périodes de facturation
+
+### ✅ Dashboard — AMÉLIORÉ
+- Protection des sous-routes dashboard (`/dashboard/menu`, `/dashboard/orders`, etc.) avec vérification d'authentification côté client
+- Redirection automatique vers `/auth/signin` si non authentifié
+
+### ✅ Menu Public — AMÉLIORÉ
+- Barre de recherche ajoutée pour filtrer les plats par nom ou description
+- Filtres par allergènes conservés
+
+### ✅ SEO — AMÉLIORÉ
+- Métadonnées dynamiques pour les pages de restaurant (`/r/[slug]`)
+- Titre et description personnalisés selon le restaurant
+- Open Graph tags pour le partage social
+
+### 🔧 Fixes
+- Build Next.js stable
+- 14/14 tests E2E Playwright passent
+- Déployé sur https://menuqr-ten.vercel.app
+
+## v0.5.0 - 2026-05-04
+
+### ✅ Stripe Payment Links — TERMINÉ
+- Page `/pricing` dédiée avec 3 plans (Basic 9,90€, Pro 29€, Premium 59€)
+- Intégration Stripe Checkout avec redirection vers Stripe
+- API `/api/stripe/checkout` — création de session de paiement
+- API `/api/stripe/portal` — portail client Stripe pour gérer l'abonnement
+- API `/api/stripe/subscription` — récupération de l'abonnement utilisateur
+- API `/api/stripe/webhook` — mise à jour automatique des abonnements
+- Dashboard Settings : affichage du plan actuel + bouton "Gérer mon abonnement"
+- 14 jours d'essai gratuit configurés
+- Fallback vers `/auth/signin` si Stripe non configuré
+
+### ✅ Upload d'images Cloudinary — AMÉLIORÉ
+- Composant `ImageUpload.tsx` enrichi avec props `value`, `onChange`, `onRemove`
+- Bouton de suppression d'image (× rouge)
+- Props `onUpload` rendue optionnelle pour compatibilité
+
+### 🔧 Fixes
+- Corrections TypeScript sur `DashboardPage.tsx`, `ImageUpload.tsx`, `pricing/page.tsx`
+- Build Next.js stable (tsc --noEmit passe)
+
 ## v0.4.0 - 2026-05-04
 
 ### ✅ PWA (Progressive Web App) — TERMINÉ
@@ -64,8 +139,12 @@
 
 ## Roadmap
 - [ ] Supabase production (en attente token)
-- [ ] Cloudinary upload (composants créés, besoin config)
-- [ ] Stripe payment links
+- [x] Cloudinary upload (composants créés, besoin config)
+- [x] Stripe payment links
 - [x] Réservation de tables (Premium)
 - [x] Multi-langue FR/EN/ES
 - [x] App mobile PWA
+- [x] Système de notifications toast
+- [x] Recherche sur le menu public
+- [x] SEO dynamique pour les restaurants
+- [x] Protection des sous-routes dashboard

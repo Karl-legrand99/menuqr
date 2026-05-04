@@ -7,8 +7,10 @@ function SettingsPageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
   const [restaurant, setRestaurant] = useState<any>(null)
+  const [subscription, setSubscription] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
   const [message, setMessage] = useState("")
 
   useEffect(() => {
@@ -24,6 +26,14 @@ function SettingsPageContent() {
           setLoading(false)
         })
     }
+
+    // Fetch subscription info
+    fetch("/api/stripe/subscription")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) setSubscription(data)
+      })
+      .catch(() => {})
   }, [restaurantId])
 
   const handleToggleOrder = async () => {
@@ -47,6 +57,24 @@ function SettingsPageContent() {
     setSaving(false)
   }
 
+  const handleManageSubscription = async () => {
+    setPortalLoading(true)
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || "Erreur lors de l'ouverture du portail Stripe")
+        return
+      }
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch (err) {
+      alert("Erreur réseau")
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
   if (loading) return <div className="text-center py-10">Chargement...</div>
 
   if (!restaurant) {
@@ -68,13 +96,50 @@ function SettingsPageContent() {
         </div>
       )}
 
+      {/* Subscription Card */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Abonnement</h2>
+        {subscription ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-700 font-medium">Plan actuel</p>
+                <p className="text-sm text-gray-500 capitalize">{subscription.plan || "Basic"} — {subscription.status === "active" ? "Actif" : subscription.status}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${subscription.status === "active" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                {subscription.status === "active" ? "Actif" : subscription.status}
+              </span>
+            </div>
+            {subscription.currentPeriodEnd && (
+              <p className="text-sm text-gray-500">
+                Prochaine facturation : {new Date(subscription.currentPeriodEnd).toLocaleDateString("fr-FR")}
+              </p>
+            )}
+            <button
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              className="mt-2 bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50"
+            >
+              {portalLoading ? "Chargement..." : "Gérer mon abonnement (Stripe)"}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-gray-600">Vous êtes sur le plan gratuit.</p>
+            <a href="/pricing" className="inline-block bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600">
+              Passer à un plan payant
+            </a>
+          </div>
+        )}
+      </div>
+
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Commandes en ligne</h2>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-gray-700 font-medium">Activer les commandes en ligne</p>
             <p className="text-sm text-gray-500">
-              Permet aux clients de commander et payer directement depuis le menu.
+              Permet aux clients de commander et payer directement depuis le menu (nécessite le plan Pro ou Premium).
             </p>
           </div>
           <button

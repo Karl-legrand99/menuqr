@@ -10,6 +10,7 @@ export default function PublicMenuPage() {
   const [restaurant, setRestaurant] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     if (slug) {
@@ -53,6 +54,10 @@ export default function PublicMenuPage() {
   const filteredCategories = restaurant.categories.map((category: any) => ({
     ...category,
     items: category.items.filter((item: any) => {
+      const matchesSearch = searchQuery === "" || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      if (!matchesSearch) return false
       if (selectedAllergens.length === 0) return true
       return !selectedAllergens.some((allergen) => item.allergens.includes(allergen))
     }),
@@ -121,6 +126,28 @@ export default function PublicMenuPage() {
           </div>
         </div>
       )}
+
+      {/* Search */}
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un plat..."
+            className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Menu */}
       <main className="max-w-4xl mx-auto px-4 pb-12">

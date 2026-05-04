@@ -3,13 +3,16 @@
 import { useState, useCallback } from "react"
 
 interface ImageUploadProps {
-  onUpload: (url: string) => void
+  onUpload?: (url: string) => void
   existingImage?: string
+  value?: string | null
+  onChange?: (url: string | null) => void
+  onRemove?: () => void
 }
 
-export default function ImageUpload({ onUpload, existingImage }: ImageUploadProps) {
+export default function ImageUpload({ onUpload, existingImage, value, onChange, onRemove }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
-  const [preview, setPreview] = useState(existingImage || "")
+  const [preview, setPreview] = useState(value || existingImage || "")
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,42 +24,40 @@ export default function ImageUpload({ onUpload, existingImage }: ImageUploadProp
       reader.onloadend = () => setPreview(reader.result as string)
       reader.readAsDataURL(file)
 
-      // Upload to Cloudinary
+      // Upload via API route locale (supporte Cloudinary + fallback local)
       setUploading(true)
       try {
         const formData = new FormData()
         formData.append("file", file)
-        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "menuqr_default")
 
-        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-        if (!cloudName) {
-          throw new Error("Cloudinary cloud name not configured")
-        }
-
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        )
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        })
 
         if (!response.ok) {
           throw new Error("Upload failed")
         }
 
         const data = await response.json()
-        onUpload(data.secure_url)
-        setPreview(data.secure_url)
+        onUpload?.(data.url)
+        onChange?.(data.url)
+        setPreview(data.url)
       } catch (error) {
         console.error("Upload error:", error)
-        alert("Erreur lors de l'upload. Vérifiez la configuration Cloudinary.")
+        alert("Erreur lors de l'upload. Vérifiez la configuration.")
       } finally {
         setUploading(false)
       }
     },
-    [onUpload]
+    [onUpload, onChange]
   )
+
+  const handleRemove = () => {
+    setPreview("")
+    onChange?.(null)
+    onRemove?.()
+  }
 
   return (
     <div className="space-y-2">
@@ -67,6 +68,13 @@ export default function ImageUpload({ onUpload, existingImage }: ImageUploadProp
             alt="Preview"
             className="w-full h-full object-cover rounded-lg border border-gray-200"
           />
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600"
+          >
+            ×
+          </button>
         </div>
       )}
       <label className="block">

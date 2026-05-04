@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 
-export default function DashboardPage() {
-  const [restaurants, setRestaurants] = useState<any[]>([])
+export default function DemoDashboard() {
+  const [restaurants, setRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,33 +24,33 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Mes Restaurants</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mes Restaurants</h1>
         <Link
           href="/dashboard/restaurant/new"
-          className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+          className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 text-sm sm:text-base w-full sm:w-auto text-center"
         >
           + Nouveau Restaurant
         </Link>
       </div>
 
       {restaurants.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-lg shadow">
+        <div className="text-center py-12 sm:py-20 bg-white rounded-lg shadow px-4">
           <p className="text-gray-500 mb-4">Vous n'avez pas encore de restaurant</p>
           <Link
             href="/dashboard/restaurant/new"
-            className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600"
+            className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 inline-block"
           >
             Créer mon premier menu
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {restaurants.map((restaurant: any) => (
-            <div key={restaurant.id} className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-2">{restaurant.name}</h2>
-              <p className="text-gray-600 mb-4">{restaurant.description || "Pas de description"}</p>
-              <div className="flex space-x-2">
+            <div key={restaurant.id} className="bg-white rounded-lg shadow p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2">{restaurant.name}</h2>
+              <p className="text-gray-600 mb-4 text-sm">{restaurant.description || "Pas de description"}</p>
+              <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/dashboard/menu?restaurant=${restaurant.id}`}
                   className="bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600 text-sm"
@@ -62,12 +62,6 @@ export default function DashboardPage() {
                   className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm"
                 >
                   Commandes
-                </Link>
-                <Link
-                  href={`/dashboard/reservations?restaurant=${restaurant.id}`}
-                  className="bg-purple-500 text-white px-3 py-2 rounded hover:bg-purple-600 text-sm"
-                >
-                  Réservations
                 </Link>
                 <Link
                   href={`/r/${restaurant.slug}`}

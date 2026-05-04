@@ -1,17 +1,18 @@
-import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
-import "./globals.css";
-import { I18nProvider } from "@/i18n/I18nContext";
+import type { Metadata } from "next"
+import { Inter, Playfair_Display } from "next/font/google"
+import "./globals.css"
+import { I18nProvider } from "@/i18n/I18nContext"
+import { ToastProvider } from "@/components/ToastProvider"
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-});
+})
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-});
+})
 
 export const metadata: Metadata = {
   title: "MenuQR — Votre menu digital en QR Code",
@@ -23,23 +24,15 @@ export const metadata: Metadata = {
     title: "MenuQR",
   },
   icons: {
-    icon: "/icons/icon-192x192.svg",
-    apple: "/icons/icon-192x192.svg",
+    icon: "/icons/icon-192x192.png",
+    apple: "/icons/icon-192x192.png",
   },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#1A1A1A",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
@@ -57,7 +50,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-[#FAFAFA] text-[#1A1A1A]">
         <I18nProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </I18nProvider>
         <script
           dangerouslySetInnerHTML={{
@@ -79,5 +74,5 @@ export default function RootLayout({
         />
       </body>
     </html>
-  );
+  )
 }
