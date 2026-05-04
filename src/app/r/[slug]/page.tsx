@@ -18,6 +18,12 @@ export default function PublicMenuPage() {
         .then((data) => {
           setRestaurant(data)
           setLoading(false)
+          // Track menu view
+          fetch(`/api/analytics/${slug}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          }).catch(() => {})
         })
         .catch(() => setLoading(false))
     }
@@ -42,7 +48,7 @@ export default function PublicMenuPage() {
     )
   }
 
-  const allAllergens = [...new Set(restaurant.categories.flatMap((c: any) => c.items.flatMap((i: any) => i.allergens)))]
+  const allAllergens: string[] = [...new Set<string>(restaurant.categories.flatMap((c: any) => c.items.flatMap((i: any) => i.allergens as string[])))]
 
   const filteredCategories = restaurant.categories.map((category: any) => ({
     ...category,
@@ -135,10 +141,22 @@ export default function PublicMenuPage() {
                       </p>
                     )}
                   </div>
-                  <div className="ml-4">
+                  <div className="ml-4 text-right">
                     <span className="text-xl font-bold" style={{ color: restaurant.primaryColor }}>
                       {item.price.toFixed(2)}€
                     </span>
+                    <button
+                      onClick={() => {
+                        fetch(`/api/analytics/${slug}`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ itemId: item.id }),
+                        }).catch(() => {})
+                      }}
+                      className="block mt-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                    >
+                      👁 Voir détails
+                    </button>
                   </div>
                 </div>
               ))}

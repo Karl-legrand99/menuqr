@@ -39,7 +39,8 @@ export async function POST(req: Request) {
         plan: "basic",
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(),
-      },
+        stripePriceId: (priceId as string) || "",
+      } as any,
     })
   }
 
@@ -47,12 +48,12 @@ export async function POST(req: Request) {
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
     mode: "subscription",
-    success_url: `${process.env.NEXTAUTH_URL}/dashboard?success=true`,
-    cancel_url: `${process.env.NEXTAUTH_URL}/pricing?canceled=true`,
+    success_url: `${process.env.NEXTAUTH_URL || "https://menuqr.vercel.app"}/dashboard?success=true`,
+    cancel_url: `${process.env.NEXTAUTH_URL || "https://menuqr.vercel.app"}/pricing?canceled=true`,
     subscription_data: {
       trial_period_days: 14,
     },
   })
 
-  return NextResponse.json({ url: checkoutSession.url })
+  return NextResponse.json({ url: checkoutSession.url || "" })
 }

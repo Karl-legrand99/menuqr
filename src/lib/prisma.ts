@@ -7,7 +7,9 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL
+  // For Supabase: use DIRECT_URL for direct connections (migrations, dev)
+  // Use DATABASE_URL (PgBouncer pooler) for serverless/edge runtime
+  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL
   if (!connectionString) {
     console.warn("[Prisma] No DATABASE_URL or DIRECT_URL found. Prisma will not work.")
     return new PrismaClient()

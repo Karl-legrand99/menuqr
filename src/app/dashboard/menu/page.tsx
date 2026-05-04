@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 function MenuPageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
-  const [categories, setCategories] = useState([])
+  const [categories, setCategories] = useState<any[]>([])
   const [newCategory, setNewCategory] = useState("")
   const [loading, setLoading] = useState(true)
 

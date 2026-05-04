@@ -85,6 +85,7 @@ model Restaurant {
   isActive       Boolean    @default(true)
   orderEnabled   Boolean    @default(false)
   categories     Category[]
+  views          MenuView[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 }
@@ -100,15 +101,30 @@ model Category {
 }
 
 model MenuItem {
-  id            String   @id @default(cuid())
+  id            String     @id @default(cuid())
   categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category      Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name          String
   description   String?
   price         Float
   image         String?
-  allergens     String[] @default([])
-  isAvailable   Boolean  @default(true)
-  isHighlighted Boolean  @default(false)
-  sortOrder     Int      @default(0)
+  allergens     String[]   @default([])
+  isAvailable   Boolean    @default(true)
+  isHighlighted Boolean    @default(false)
+  sortOrder     Int        @default(0)
+  analytics     MenuView[]
+}
+
+model MenuView {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  itemId       String?
+  item         MenuItem?  @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([itemId, createdAt])
 }
