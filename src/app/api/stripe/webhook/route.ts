@@ -1,25 +1,26 @@
 import { NextResponse } from "next/server"
-import Stripe from "stripe"
+import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" as any })
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-
 export async function POST(req: Request) {
+  if (!stripe) {
+    return NextResponse.json({ error: "Stripe not configured" }, { status: 503 })
+  }
+
   const payload = await req.text()
   const signature = req.headers.get("stripe-signature")!
 
-  let event: Stripe.Event
+  let event: any
 
   try {
-    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret)
+    event = stripe.webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET || "")
   } catch (err: any) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
   }
 
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session
+      const session = event.data.object
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
 
       await prisma.subscription.updateMany({
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice
+      const invoice = event.data.object
       await prisma.subscription.updateMany({
         where: { stripeCustomerId: invoice.customer as string },
         data: { status: "past_due" },
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     case "customer.subscription.deleted": {
-      const subscription = event.data.object as Stripe.Subscription
+      const subscription = event.data.object
       await prisma.subscription.updateMany({
         where: { stripeSubscriptionId: subscription.id },
         data: { status: "canceled" },
