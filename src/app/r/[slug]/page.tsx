@@ -76,6 +76,16 @@ export default function PublicMenuPage() {
             📞 {restaurant.phone}
           </a>
         )}
+        {restaurant.orderEnabled && (
+          <div className="mt-4">
+            <Link
+              href={`/r/${slug}/order`}
+              className="inline-block bg-white text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg"
+            >
+              🛒 Commander en ligne
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Allergen Filter */}
@@ -119,11 +129,18 @@ export default function PublicMenuPage() {
               {category.items.map((item: any) => (
                 <div
                   key={item.id}
-                  className={`flex justify-between items-start p-4 rounded-lg ${
+                  className={`flex gap-4 p-4 rounded-lg ${
                     item.isHighlighted ? "bg-orange-50 border border-orange-200" : "bg-gray-50"
                   }`}
                 >
-                  <div className="flex-1">
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-24 h-24 rounded-lg object-cover border border-gray-200 shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-lg">{item.name}</h3>
                       {item.isHighlighted && (
@@ -141,7 +158,7 @@ export default function PublicMenuPage() {
                       </p>
                     )}
                   </div>
-                  <div className="ml-4 text-right">
+                  <div className="ml-4 text-right shrink-0">
                     <span className="text-xl font-bold" style={{ color: restaurant.primaryColor }}>
                       {item.price.toFixed(2)}€
                     </span>

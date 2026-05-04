@@ -11,7 +11,11 @@ export default function DashboardPage() {
     fetch("/api/restaurant")
       .then((res) => res.json())
       .then((data) => {
-        setRestaurants(data)
+        setRestaurants(Array.isArray(data) ? data : [])
+        setLoading(false)
+      })
+      .catch(() => {
+        setRestaurants([])
         setLoading(false)
       })
   }, [])
@@ -52,6 +56,12 @@ export default function DashboardPage() {
                   className="bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600 text-sm"
                 >
                   Gérer le menu
+                </Link>
+                <Link
+                  href={`/dashboard/orders?restaurant=${restaurant.id}`}
+                  className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm"
+                >
+                  Commandes
                 </Link>
                 <Link
                   href={`/r/${restaurant.slug}`}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import ImageUpload from "@/components/ImageUpload"
 
 function MenuPageContent() {
   const searchParams = useSearchParams()
@@ -73,9 +74,18 @@ function MenuPageContent() {
               <div className="space-y-3">
                 {category.items.map((item: any) => (
                   <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-600">{item.description}</p>
+                    <div className="flex items-center gap-3">
+                      {item.image && (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-12 h-12 rounded object-cover border border-gray-200"
+                        />
+                      )}
+                      <div>
+                        <h3 className="font-medium">{item.name}</h3>
+                        <p className="text-sm text-gray-600">{item.description}</p>
+                      </div>
                     </div>
                     <span className="font-bold text-orange-500">{item.price}€</span>
                   </div>
@@ -107,6 +117,7 @@ function AddItemForm({ categoryId, onAdd }: { categoryId: string, onAdd: (item: 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
+  const [image, setImage] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,7 +125,7 @@ function AddItemForm({ categoryId, onAdd }: { categoryId: string, onAdd: (item: 
     const res = await fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ categoryId, name, description, price: parseFloat(price) }),
+      body: JSON.stringify({ categoryId, name, description, price: parseFloat(price), image }),
     })
 
     if (res.ok) {
@@ -123,11 +134,12 @@ function AddItemForm({ categoryId, onAdd }: { categoryId: string, onAdd: (item: 
       setName("")
       setDescription("")
       setPrice("")
+      setImage(null)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-4 gap-2">
+    <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-2">
       <input
         type="text"
         placeholder="Nom du plat"
@@ -152,9 +164,12 @@ function AddItemForm({ categoryId, onAdd }: { categoryId: string, onAdd: (item: 
         required
         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
       />
+      <div className="md:col-span-4">
+        <ImageUpload value={image} onChange={setImage} onRemove={() => setImage(null)} />
+      </div>
       <button
         type="submit"
-        className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+        className="md:col-span-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
       >
         Ajouter
       </button>
