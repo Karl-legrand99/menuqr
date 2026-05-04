@@ -69,26 +69,28 @@ model Subscription {
 }
 
 model Restaurant {
-  id             String     @id @default(cuid())
+  id             String        @id @default(cuid())
   userId         String
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
-  slug           String     @unique
+  slug           String        @unique
   description    String?
   address        String?
   phone          String?
   logo           String?
-  primaryColor   String     @default("#FF6B35")
-  secondaryColor String     @default("#2C3E50")
-  font           String     @default("inter")
-  currency       String     @default("EUR")
-  isActive       Boolean    @default(true)
-  orderEnabled   Boolean    @default(false)
+  primaryColor   String        @default("#FF6B35")
+  secondaryColor String        @default("#2C3E50")
+  font           String        @default("inter")
+  currency       String        @default("EUR")
+  isActive       Boolean       @default(true)
+  orderEnabled   Boolean       @default(false)
   categories     Category[]
   views          MenuView[]
   orders         Order[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  tables         Table[]
+  reservations   Reservation[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 model Category {
@@ -146,4 +148,39 @@ model Order {
   updatedAt          DateTime @updatedAt
 
   @@index([restaurantId, status, createdAt])
+}
+
+model Table {
+  id           String        @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  capacity     Int
+  position     String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[]
+
+  @@index([restaurantId, isActive])
+}
+
+model Reservation {
+  id            String      @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tableId       String?
+  table         Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  date          String
+  time          String
+  partySize     Int
+  status        String      @default("pending") // pending, confirmed, cancelled
+  notes         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([restaurantId, date, status])
+  @@index([tableId, date])
 }

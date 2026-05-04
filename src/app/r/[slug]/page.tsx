@@ -86,6 +86,14 @@ export default function PublicMenuPage() {
             </Link>
           </div>
         )}
+        <div className="mt-4">
+          <Link
+            href={`/r/${slug}/reserver`}
+            className="inline-block bg-white/20 text-white border border-white/40 px-6 py-3 rounded-lg font-semibold hover:bg-white/30 transition-colors shadow-lg"
+          >
+            📅 Réserver une table
+          </Link>
+        </div>
       </header>
 
       {/* Allergen Filter */}

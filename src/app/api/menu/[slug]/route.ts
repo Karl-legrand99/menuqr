@@ -15,6 +15,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
         },
         orderBy: { sortOrder: "asc" },
       },
+      tables: {
+        where: { isActive: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   })
 

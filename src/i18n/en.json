@@ -1,0 +1,74 @@
+{
+  "landing": {
+    "nav": {
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "signin": "Sign In"
+    },
+    "hero": {
+      "title": "Your digital menu<br />in 2 minutes",
+      "subtitle": "Create a beautiful QR code menu for your restaurant. Your customers scan and order directly from their phone.",
+      "cta_start": "Start for free",
+      "cta_demo": "See the demo",
+      "trial": "14-day free trial • No commitment"
+    },
+    "how_it_works": {
+      "title": "How does it work?",
+      "step1_title": "1. Create your menu",
+      "step1_desc": "Add your categories and dishes in a few clicks. Customize colors and design.",
+      "step2_title": "2. Generate the QR code",
+      "step2_desc": "Download your custom QR code and display it on your tables or storefront.",
+      "step3_title": "3. Your customers order",
+      "step3_desc": "They scan, see the menu, and order directly. Simple and fast!"
+    },
+    "pricing": {
+      "title": "Simple and transparent pricing",
+      "basic_name": "Basic",
+      "basic_desc": "To get started",
+      "basic_price": "$9.90",
+      "basic_period": "/month",
+      "basic_feature1": "Unlimited QR menu",
+      "basic_feature2": "Customizable design",
+      "basic_feature3": "Up to 50 dishes",
+      "basic_feature4": "Online ordering",
+      "basic_cta": "Choose Basic",
+      "pro_name": "Pro",
+      "pro_desc": "For active restaurants",
+      "pro_price": "$29",
+      "pro_period": "/month",
+      "pro_badge": "Most popular",
+      "pro_feature1": "Everything in Basic",
+      "pro_feature2": "Online ordering (Stripe)",
+      "pro_feature3": "Unlimited dishes",
+      "pro_feature4": "Basic analytics",
+      "pro_cta": "Choose Pro",
+      "premium_name": "Premium",
+      "premium_desc": "For chains and groups",
+      "premium_price": "$59",
+      "premium_period": "/month",
+      "premium_feature1": "Everything in Pro",
+      "premium_feature2": "Table reservations",
+      "premium_feature3": "Advanced analytics",
+      "premium_feature4": "Priority support",
+      "premium_cta": "Choose Premium"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "q1": "How does the QR code work?",
+      "a1": "You generate a unique QR code for your restaurant. Your customers scan it with their phone and instantly access your digital menu. No app needed!",
+      "q2": "Can I edit my menu at any time?",
+      "a2": "Yes! Your menu updates in real time. Change a price, add a dish, and your customers see the changes immediately.",
+      "q3": "How does online ordering work?",
+      "a3": "With the Pro plan, your customers can order and pay directly via Stripe. You receive orders in real time.",
+      "q4": "Is there a commitment?",
+      "a4": "No! You can cancel at any time. We also offer a 14-day free trial to test without risk."
+    },
+    "cta": {
+      "title": "Ready to modernize your restaurant?",
+      "subtitle": "Join hundreds of restaurateurs already using MenuQR.",
+      "cta": "Start for free",
+      "trial": "14-day trial • No credit card"
+    },
+    "footer": "© 2025 MenuQR. All rights reserved."
+  }
+}

@@ -64,6 +64,12 @@ export default function DashboardPage() {
                   Commandes
                 </Link>
                 <Link
+                  href={`/dashboard/reservations?restaurant=${restaurant.id}`}
+                  className="bg-purple-500 text-white px-3 py-2 rounded hover:bg-purple-600 text-sm"
+                >
+                  Réservations
+                </Link>
+                <Link
                   href={`/r/${restaurant.slug}`}
                   target="_blank"
                   className="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 text-sm"
