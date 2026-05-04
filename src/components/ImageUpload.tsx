@@ -8,16 +8,51 @@ interface ImageUploadProps {
   value?: string | null
   onChange?: (url: string | null) => void
   onRemove?: () => void
+  maxSizeMB?: number
+  acceptedTypes?: string[]
 }
 
-export default function ImageUpload({ onUpload, existingImage, value, onChange, onRemove }: ImageUploadProps) {
+const DEFAULT_MAX_SIZE_MB = 5
+const DEFAULT_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]
+
+export default function ImageUpload({
+  onUpload,
+  existingImage,
+  value,
+  onChange,
+  onRemove,
+  maxSizeMB = DEFAULT_MAX_SIZE_MB,
+  acceptedTypes = DEFAULT_ACCEPTED_TYPES,
+}: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState(value || existingImage || "")
+  const [error, setError] = useState<string | null>(null)
+
+  const maxSizeBytes = maxSizeMB * 1024 * 1024
+
+  const validateFile = (file: File): string | null => {
+    if (!acceptedTypes.includes(file.type)) {
+      return `Type non supporté. Formats acceptés : ${acceptedTypes.map((t) => t.replace("image/", "")).join(", ")}`
+    }
+    if (file.size > maxSizeBytes) {
+      return `Fichier trop volumineux. Maximum ${maxSizeMB} Mo.`
+    }
+    return null
+  }
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       if (!file) return
+
+      setError(null)
+
+      // Validation client
+      const validationError = validateFile(file)
+      if (validationError) {
+        setError(validationError)
+        return
+      }
 
       // Preview
       const reader = new FileReader()
@@ -36,25 +71,27 @@ export default function ImageUpload({ onUpload, existingImage, value, onChange, 
         })
 
         if (!response.ok) {
-          throw new Error("Upload failed")
+          const data = await response.json().catch(() => ({}))
+          throw new Error(data.error || `Upload failed (${response.status})`)
         }
 
         const data = await response.json()
         onUpload?.(data.url)
         onChange?.(data.url)
         setPreview(data.url)
-      } catch (error) {
-        console.error("Upload error:", error)
-        alert("Erreur lors de l'upload. Vérifiez la configuration.")
+      } catch (err: any) {
+        console.error("Upload error:", err)
+        setError(err.message || "Erreur lors de l'upload. Vérifiez la configuration.")
       } finally {
         setUploading(false)
       }
     },
-    [onUpload, onChange]
+    [onUpload, onChange, maxSizeBytes, acceptedTypes, maxSizeMB]
   )
 
   const handleRemove = () => {
     setPreview("")
+    setError(null)
     onChange?.(null)
     onRemove?.()
   }
@@ -71,7 +108,8 @@ export default function ImageUpload({ onUpload, existingImage, value, onChange, 
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600"
+            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 flex items-center justify-center"
+            aria-label="Supprimer l'image"
           >
             ×
           </button>
@@ -81,7 +119,7 @@ export default function ImageUpload({ onUpload, existingImage, value, onChange, 
         <span className="sr-only">Choisir une image</span>
         <input
           type="file"
-          accept="image/*"
+          accept={acceptedTypes.join(",")}
           onChange={handleFileChange}
           disabled={uploading}
           className="block w-full text-sm text-gray-500
@@ -94,6 +132,10 @@ export default function ImageUpload({ onUpload, existingImage, value, onChange, 
         />
       </label>
       {uploading && <p className="text-sm text-orange-600">Upload en cours...</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <p className="text-xs text-gray-400">
+        Max {maxSizeMB} Mo · {acceptedTypes.map((t) => t.replace("image/", "").toUpperCase()).join(", ")}
+      </p>
     </div>
   )
 }

@@ -26,24 +26,28 @@ export default function ReservationPage() {
 
   useEffect(() => {
     if (slug) {
-      Promise.all([
-        fetch(`/api/menu/${slug}`).then((res) => res.json()),
-        fetch(`/api/restaurant/${slug}/tables`).catch(() => null),
-      ])
-        .then(([menuData, tablesRes]) => {
+      fetch(`/api/menu/${slug}`)
+        .then((res) => res.json())
+        .then((menuData) => {
           if (menuData.error) {
             setRestaurant(null)
+            setLoading(false)
           } else {
             setRestaurant(menuData)
+            // Fetch tables only if restaurant exists (needs numeric ID)
+            if (menuData.id) {
+              fetch(`/api/restaurant/${menuData.id}/tables`)
+                .then((res) => (res.ok ? res.json() : []))
+                .then((t: any) => setTables(Array.isArray(t) ? t : []))
+                .catch(() => setTables([]))
+                .finally(() => setLoading(false))
+            } else {
+              setLoading(false)
+            }
           }
-          if (tablesRes && tablesRes.ok) {
-            tablesRes.json().then((t: any) => setTables(Array.isArray(t) ? t : [])).catch(() => setTables([]))
-          } else {
-            setTables([])
-          }
-          setLoading(false)
         })
         .catch(() => {
+          setRestaurant(null)
           setLoading(false)
         })
     }

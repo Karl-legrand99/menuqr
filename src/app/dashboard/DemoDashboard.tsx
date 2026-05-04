@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 
 export default function DemoDashboard() {
-  const [restaurants, setRestaurants] = useState([])
+  const [restaurants, setRestaurants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

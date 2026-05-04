@@ -1,5 +1,34 @@
 # MenuQR Changelog
 
+## v0.8.0 - 2026-05-04
+
+### ✅ Upload d'images — SÉCURISÉ
+- **Rate limiting** : 10 uploads/minute par IP sur `/api/upload`
+- **Validation des fichiers** : types MIME autorisés (JPG, PNG, WebP, GIF, SVG), taille max 5 Mo
+- **Messages d'erreur i18n** : retours explicites en français (type non supporté, fichier trop volumineux, etc.)
+- Composant `ImageUpload.tsx` : affichage des erreurs de validation en temps réel, info formats/taille
+- API `/api/upload` : fallback local + Cloudinary avec gestion d'erreurs améliorée
+
+### ✅ PWA — CORRIGÉ
+- Service Worker (`public/sw.js`) : références SVG remplacées par PNG (`icon-192x192.png`, `icon-512x512.png`)
+- Le cache PWA est maintenant complet et fonctionnel
+
+### ✅ Tests E2E — ÉTENDU
+- **16/16 tests Playwright passent** (+2 nouveaux tests réservation)
+- Suite `reservation.spec.ts` ajoutée : couverture de la page `/r/[slug]/reserver`
+- Tests résilients aux erreurs DB (pas de 500)
+
+### ✅ Réservation de tables — ROBUSTIFIÉ
+- Page `/r/[slug]/reserver` : fetch des tables corrigé (utilise l'ID numérique du restaurant, pas le slug)
+- Gestion des erreurs API améliorée (pas de crash si la DB est indisponible)
+
+### 🔧 Fixes
+- `DemoDashboard.tsx` : correction TypeScript `useState<any[]>([])`
+- Build Next.js stable (tsc --noEmit passe)
+- Déployé sur https://menuqr-ten.vercel.app
+
+---
+
 ## v0.7.0 - 2026-05-04
 
 ### ✅ Upload d'images — AMÉLIORÉ
