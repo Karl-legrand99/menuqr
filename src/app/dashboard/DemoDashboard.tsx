@@ -8,7 +8,10 @@ export default function DemoDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/restaurant")
+    const isDemo = localStorage.getItem("demo-mode") === "true"
+    fetch("/api/restaurant", {
+      headers: isDemo ? { "x-demo-mode": "true" } : {}
+    })
       .then((res) => res.json())
       .then((data) => {
         setRestaurants(Array.isArray(data) ? data : [])

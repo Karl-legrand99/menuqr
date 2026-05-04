@@ -3,10 +3,33 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
+  const isDemo = req.headers.get("x-demo-mode") === "true"
+
+  if (!session?.user?.email && !isDemo) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Mode démo : retourner des restaurants mock
+  if (isDemo) {
+    const mockRestaurants = [
+      {
+        id: "demo-1",
+        name: "Le Petit Bistro",
+        slug: "le-petit-bistro",
+        description: "Un charmant bistrot parisien",
+        address: "12 Rue de la Paix, Paris",
+        phone: "+33 1 23 45 67 89",
+        primaryColor: "#FF6B35",
+        secondaryColor: "#2C3E50",
+        userId: "demo-user",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        categories: [],
+      }
+    ]
+    return NextResponse.json(mockRestaurants)
   }
 
   const restaurants = await prisma.restaurant.findMany({
@@ -25,12 +48,35 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
+  
+  // Mode démo : bypass auth, retourne un restaurant mock
+  const isDemo = req.headers.get("x-demo-mode") === "true"
+  
+  if (!session?.user?.email && !isDemo) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const body = await req.json()
   const { name, slug, description, address, phone, primaryColor, secondaryColor } = body
+
+  // En mode démo, pas de DB — retourne un mock
+  if (isDemo) {
+    const mockRestaurant = {
+      id: "demo-" + Date.now(),
+      name,
+      slug,
+      description,
+      address: address || "",
+      phone: phone || "",
+      primaryColor: primaryColor || "#FF6B35",
+      secondaryColor: secondaryColor || "#2C3E50",
+      userId: "demo-user",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      categories: [],
+    }
+    return NextResponse.json(mockRestaurant)
+  }
 
   const existing = await prisma.restaurant.findUnique({ where: { slug } })
   if (existing) {

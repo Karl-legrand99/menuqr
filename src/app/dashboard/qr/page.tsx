@@ -2,15 +2,52 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { useDemoMode } from "@/lib/demo"
+import { demoRestaurant } from "@/lib/demoData"
 
 function QRCodePageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
+  const { isDemo, checked } = useDemoMode()
   const [qrCode, setQrCode] = useState("")
   const [restaurant, setRestaurant] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!checked) return
+    if (isDemo) {
+      setRestaurant(demoRestaurant)
+      // Generate a simple QR code data URL for demo
+      const canvas = document.createElement("canvas")
+      canvas.width = 256
+      canvas.height = 256
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        ctx.fillStyle = "white"
+        ctx.fillRect(0, 0, 256, 256)
+        ctx.fillStyle = "black"
+        const cellSize = 8
+        for (let y = 0; y < 32; y++) {
+          for (let x = 0; x < 32; x++) {
+            if (Math.random() > 0.5) {
+              ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize)
+            }
+          }
+        }
+        // Add finder patterns corners
+        const drawFinder = (cx: number, cy: number) => {
+          ctx.fillRect(cx, cy, 7 * cellSize, 7 * cellSize)
+          ctx.clearRect(cx + cellSize, cy + cellSize, 5 * cellSize, 5 * cellSize)
+          ctx.fillRect(cx + 2 * cellSize, cy + 2 * cellSize, 3 * cellSize, 3 * cellSize)
+        }
+        drawFinder(0, 0)
+        drawFinder(25 * cellSize, 0)
+        drawFinder(0, 25 * cellSize)
+        setQrCode(canvas.toDataURL("image/png"))
+      }
+      setLoading(false)
+      return
+    }
     if (restaurantId) {
       fetch("/api/restaurant")
         .then((res) => res.json())
@@ -24,10 +61,15 @@ function QRCodePageContent() {
                 setQrCode(qrData.qrCode)
                 setLoading(false)
               })
+          } else {
+            setLoading(false)
           }
         })
+        .catch(() => setLoading(false))
+    } else {
+      setLoading(false)
     }
-  }, [restaurantId])
+  }, [restaurantId, isDemo, checked])
 
   const downloadQR = () => {
     const link = document.createElement("a")

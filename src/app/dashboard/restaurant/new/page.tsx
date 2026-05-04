@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 export default function NewRestaurantPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -19,17 +20,25 @@ export default function NewRestaurantPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
+
+    const isDemo = localStorage.getItem("demo-mode") === "true"
 
     const res = await fetch("/api/restaurant", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(isDemo ? { "x-demo-mode": "true" } : {})
+      },
       body: JSON.stringify(form),
     })
+
+    const data = await res.json().catch(() => null)
 
     if (res.ok) {
       router.push("/dashboard")
     } else {
-      alert("Erreur lors de la création")
+      setError(data?.error || "Erreur lors de la création du restaurant")
     }
     setLoading(false)
   }
@@ -39,6 +48,12 @@ export default function NewRestaurantPage() {
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Nouveau Restaurant</h1>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nom du restaurant</label>
           <input

@@ -2,10 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { useDemoMode } from "@/lib/demo"
+import { demoReservations, demoTables } from "@/lib/demoData"
 
 function ReservationsPageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
+  const { isDemo, checked } = useDemoMode()
   const [reservations, setReservations] = useState<any[]>([])
   const [tables, setTables] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -16,6 +19,13 @@ function ReservationsPageContent() {
   const [tablePosition, setTablePosition] = useState("")
 
   useEffect(() => {
+    if (!checked) return
+    if (isDemo) {
+      setReservations(demoReservations)
+      setTables(demoTables)
+      setLoading(false)
+      return
+    }
     if (restaurantId) {
       Promise.all([
         fetch(`/api/reservations?restaurantId=${restaurantId}`).then((res) => res.json()),
@@ -31,10 +41,16 @@ function ReservationsPageContent() {
           setTables([])
           setLoading(false)
         })
+    } else {
+      setLoading(false)
     }
-  }, [restaurantId])
+  }, [restaurantId, isDemo, checked])
 
   const updateStatus = async (id: string, status: string) => {
+    if (isDemo) {
+      setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+      return
+    }
     const res = await fetch(`/api/reservations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -46,6 +62,17 @@ function ReservationsPageContent() {
   }
 
   const assignTable = async (reservationId: string, tableId: string | null) => {
+    if (isDemo) {
+      const table = tableId ? tables.find((t) => t.id === tableId) || null : null
+      setReservations((prev) =>
+        prev.map((r) =>
+          r.id === reservationId
+            ? { ...r, tableId: tableId || null, table }
+            : r
+        )
+      )
+      return
+    }
     const res = await fetch(`/api/reservations/${reservationId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -59,7 +86,23 @@ function ReservationsPageContent() {
 
   const createTable = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!restaurantId || !tableName || !tableCapacity) return
+    if (!restaurantId && !isDemo) return
+    if (!tableName || !tableCapacity) return
+    if (isDemo) {
+      const table = {
+        id: "demo-table-" + Date.now(),
+        name: tableName,
+        capacity: parseInt(tableCapacity, 10),
+        position: tablePosition || null,
+        restaurantId: "demo-1",
+      }
+      setTables((prev) => [...prev, table])
+      setTableName("")
+      setTableCapacity("")
+      setTablePosition("")
+      setShowTableForm(false)
+      return
+    }
     const res = await fetch(`/api/restaurant/${restaurantId}/tables`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

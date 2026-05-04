@@ -2,15 +2,24 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { useDemoMode } from "@/lib/demo"
+import { demoOrders } from "@/lib/demoData"
 
 function OrdersPageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
+  const { isDemo, checked } = useDemoMode()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
 
   useEffect(() => {
+    if (!checked) return
+    if (isDemo) {
+      setOrders(demoOrders)
+      setLoading(false)
+      return
+    }
     if (restaurantId) {
       fetch(`/api/orders?restaurantId=${restaurantId}`)
         .then((res) => res.json())
@@ -22,10 +31,18 @@ function OrdersPageContent() {
           setOrders([])
           setLoading(false)
         })
+    } else {
+      setLoading(false)
     }
-  }, [restaurantId])
+  }, [restaurantId, isDemo, checked])
 
   const updateStatus = async (orderId: string, status: string) => {
+    if (isDemo) {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+      )
+      return
+    }
     const res = await fetch(`/api/orders/${orderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

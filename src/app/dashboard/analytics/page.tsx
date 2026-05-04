@@ -1,16 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { SkeletonCard, SkeletonText } from "@/components/Skeleton"
+import { useDemoMode } from "@/lib/demo"
+import { demoAnalytics } from "@/lib/demoData"
 
 function AnalyticsPageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
+  const { isDemo, checked } = useDemoMode()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!checked) return
+    if (isDemo) {
+      setData(demoAnalytics)
+      setLoading(false)
+      return
+    }
     if (restaurantId) {
       fetch(`/api/restaurant`)
         .then((res) => res.json())
@@ -29,8 +38,10 @@ function AnalyticsPageContent() {
           }
         })
         .catch(() => setLoading(false))
+    } else {
+      setLoading(false)
     }
-  }, [restaurantId])
+  }, [restaurantId, isDemo, checked])
 
   if (loading) {
     return (

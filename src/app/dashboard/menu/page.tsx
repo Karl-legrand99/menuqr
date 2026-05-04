@@ -3,15 +3,24 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import ImageUpload from "@/components/ImageUpload"
+import { useDemoMode } from "@/lib/demo"
+import { demoCategories } from "@/lib/demoData"
 
 function MenuPageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
+  const { isDemo, checked } = useDemoMode()
   const [categories, setCategories] = useState<any[]>([])
   const [newCategory, setNewCategory] = useState("")
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!checked) return
+    if (isDemo) {
+      setCategories(demoCategories)
+      setLoading(false)
+      return
+    }
     if (restaurantId) {
       fetch(`/api/restaurant`)
         .then((res) => res.json())
@@ -22,11 +31,26 @@ function MenuPageContent() {
           }
           setLoading(false)
         })
+    } else {
+      setLoading(false)
     }
-  }, [restaurantId])
+  }, [restaurantId, isDemo, checked])
 
   const addCategory = async () => {
     if (!newCategory.trim()) return
+
+    if (isDemo) {
+      const category = {
+        id: "demo-cat-" + Date.now(),
+        name: newCategory,
+        sortOrder: categories.length + 1,
+        restaurantId: "demo-1",
+        items: [],
+      }
+      setCategories([...categories, category])
+      setNewCategory("")
+      return
+    }
 
     const res = await fetch("/api/categories", {
       method: "POST",
@@ -93,7 +117,7 @@ function MenuPageContent() {
               </div>
             )}
 
-            <AddItemForm categoryId={category.id} onAdd={(item) => {
+            <AddItemForm categoryId={category.id} isDemo={isDemo} onAdd={(item) => {
               setCategories(categories.map((c: any) => 
                 c.id === category.id ? { ...c, items: [...c.items, item] } : c
               ))
@@ -113,7 +137,7 @@ export default function MenuPage() {
   )
 }
 
-function AddItemForm({ categoryId, onAdd }: { categoryId: string, onAdd: (item: any) => void }) {
+function AddItemForm({ categoryId, onAdd, isDemo }: { categoryId: string, onAdd: (item: any) => void, isDemo?: boolean }) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
@@ -121,6 +145,23 @@ function AddItemForm({ categoryId, onAdd }: { categoryId: string, onAdd: (item: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isDemo) {
+      const item = {
+        id: "demo-item-" + Date.now(),
+        categoryId,
+        name,
+        description,
+        price: parseFloat(price),
+        image,
+      }
+      onAdd(item)
+      setName("")
+      setDescription("")
+      setPrice("")
+      setImage(null)
+      return
+    }
     
     const res = await fetch("/api/items", {
       method: "POST",

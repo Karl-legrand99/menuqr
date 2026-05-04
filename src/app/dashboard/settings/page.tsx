@@ -2,10 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { useDemoMode } from "@/lib/demo"
+import { demoRestaurant, demoSubscription } from "@/lib/demoData"
 
 function SettingsPageContent() {
   const searchParams = useSearchParams()
   const restaurantId = searchParams.get("restaurant")
+  const { isDemo, checked } = useDemoMode()
   const [restaurant, setRestaurant] = useState<any>(null)
   const [subscription, setSubscription] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -14,6 +17,13 @@ function SettingsPageContent() {
   const [message, setMessage] = useState("")
 
   useEffect(() => {
+    if (!checked) return
+    if (isDemo) {
+      setRestaurant(demoRestaurant)
+      setSubscription(demoSubscription)
+      setLoading(false)
+      return
+    }
     if (restaurantId) {
       fetch("/api/restaurant")
         .then((res) => res.json())
@@ -25,6 +35,8 @@ function SettingsPageContent() {
         .catch(() => {
           setLoading(false)
         })
+    } else {
+      setLoading(false)
     }
 
     // Fetch subscription info
@@ -34,12 +46,20 @@ function SettingsPageContent() {
         if (!data.error) setSubscription(data)
       })
       .catch(() => {})
-  }, [restaurantId])
+  }, [restaurantId, isDemo, checked])
 
   const handleToggleOrder = async () => {
     if (!restaurant) return
     setSaving(true)
     setMessage("")
+
+    if (isDemo) {
+      const updated = { ...restaurant, orderEnabled: !restaurant.orderEnabled }
+      setRestaurant(updated)
+      setMessage(updated.orderEnabled ? "Commandes en ligne activées !" : "Commandes en ligne désactivées.")
+      setSaving(false)
+      return
+    }
 
     const res = await fetch(`/api/restaurant/${restaurant.id}`, {
       method: "PUT",
@@ -58,6 +78,10 @@ function SettingsPageContent() {
   }
 
   const handleManageSubscription = async () => {
+    if (isDemo) {
+      alert("Mode démo : pas de portail Stripe disponible")
+      return
+    }
     setPortalLoading(true)
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" })
