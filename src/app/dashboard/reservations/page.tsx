@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useDemoMode } from "@/lib/demo"
-import { demoReservations, demoTables } from "@/lib/demoData"
+import { demoReservations, demoTables, getDemoReservations, setDemoReservations } from "@/lib/demoData"
 
 function ReservationsPageContent() {
   const searchParams = useSearchParams()
@@ -21,7 +21,7 @@ function ReservationsPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setReservations(demoReservations)
+      setReservations(getDemoReservations())
       setTables(demoTables)
       setLoading(false)
       return
@@ -48,7 +48,9 @@ function ReservationsPageContent() {
 
   const updateStatus = async (id: string, status: string) => {
     if (isDemo) {
-      setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+      const updated = reservations.map((r) => (r.id === id ? { ...r, status } : r))
+      setReservations(updated)
+      setDemoReservations(updated)
       return
     }
     const res = await fetch(`/api/reservations/${id}`, {
@@ -64,13 +66,13 @@ function ReservationsPageContent() {
   const assignTable = async (reservationId: string, tableId: string | null) => {
     if (isDemo) {
       const table = tableId ? tables.find((t) => t.id === tableId) || null : null
-      setReservations((prev) =>
-        prev.map((r) =>
-          r.id === reservationId
-            ? { ...r, tableId: tableId || null, table }
-            : r
-        )
+      const updated = reservations.map((r) =>
+        r.id === reservationId
+          ? { ...r, tableId: tableId || null, table }
+          : r
       )
+      setReservations(updated)
+      setDemoReservations(updated)
       return
     }
     const res = await fetch(`/api/reservations/${reservationId}`, {
@@ -96,7 +98,8 @@ function ReservationsPageContent() {
         position: tablePosition || null,
         restaurantId: "demo-1",
       }
-      setTables((prev) => [...prev, table])
+      const updated = [...tables, table]
+      setTables(updated)
       setTableName("")
       setTableCapacity("")
       setTablePosition("")

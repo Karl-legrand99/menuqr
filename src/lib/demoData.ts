@@ -1,22 +1,12 @@
 "use client"
 
-export const demoRestaurant = {
-  id: "demo-1",
-  name: "Le Petit Bistro",
-  slug: "le-petit-bistro",
-  description: "Un charmant bistrot parisien avec une cuisine traditionnelle et des produits frais.",
-  address: "12 Rue de la Paix, 75002 Paris",
-  phone: "+33 1 23 45 67 89",
-  primaryColor: "#FF6B35",
-  secondaryColor: "#2C3E50",
-  isActive: true,
-  orderEnabled: true,
-  userId: "demo-user",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+const STORAGE_KEYS = {
+  categories: "menuqr-demo-categories",
+  orders: "menuqr-demo-orders",
+  reservations: "menuqr-demo-reservations",
 }
 
-export const demoCategories = [
+const defaultCategories = [
   {
     id: "demo-cat-1",
     name: "Entrées",
@@ -51,7 +41,7 @@ export const demoCategories = [
   },
 ]
 
-export const demoOrders = [
+const defaultOrders = [
   {
     id: "demo-order-1",
     restaurantId: "demo-1",
@@ -102,7 +92,7 @@ export const demoOrders = [
   },
 ]
 
-export const demoReservations = [
+const defaultReservations = [
   {
     id: "demo-res-1",
     restaurantId: "demo-1",
@@ -150,6 +140,71 @@ export const demoReservations = [
   },
 ]
 
+// --- localStorage helpers ---
+function loadFromStorage<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // ignore parse errors
+  }
+  return fallback
+}
+
+function saveToStorage<T>(key: string, value: T) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // ignore storage errors (e.g. quota exceeded)
+  }
+}
+
+export function getDemoCategories() {
+  return loadFromStorage(STORAGE_KEYS.categories, defaultCategories)
+}
+
+export function setDemoCategories(categories: any[]) {
+  saveToStorage(STORAGE_KEYS.categories, categories)
+}
+
+export function getDemoOrders() {
+  return loadFromStorage(STORAGE_KEYS.orders, defaultOrders)
+}
+
+export function setDemoOrders(orders: any[]) {
+  saveToStorage(STORAGE_KEYS.orders, orders)
+}
+
+export function getDemoReservations() {
+  return loadFromStorage(STORAGE_KEYS.reservations, defaultReservations)
+}
+
+export function setDemoReservations(reservations: any[]) {
+  saveToStorage(STORAGE_KEYS.reservations, reservations)
+}
+
+// --- Backward-compatible exports (used by non-persisted pages) ---
+export const demoRestaurant = {
+  id: "demo-1",
+  name: "Le Petit Bistro",
+  slug: "le-petit-bistro",
+  description: "Un charmant bistrot parisien avec une cuisine traditionnelle et des produits frais.",
+  address: "12 Rue de la Paix, 75002 Paris",
+  phone: "+33 1 23 45 67 89",
+  primaryColor: "#FF6B35",
+  secondaryColor: "#2C3E50",
+  isActive: true,
+  orderEnabled: true,
+  userId: "demo-user",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+}
+
+export const demoCategories = defaultCategories
+export const demoOrders = defaultOrders
+export const demoReservations = defaultReservations
 export const demoTables = [
   { id: "demo-table-1", name: "Terrasse 1", capacity: 4, position: "Terrasse", restaurantId: "demo-1" },
   { id: "demo-table-2", name: "Salle 2", capacity: 6, position: "Salle principale", restaurantId: "demo-1" },

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import ImageUpload from "@/components/ImageUpload"
 import { useDemoMode } from "@/lib/demo"
-import { demoCategories } from "@/lib/demoData"
+import { getDemoCategories, setDemoCategories } from "@/lib/demoData"
 
 function MenuPageContent() {
   const searchParams = useSearchParams()
@@ -17,7 +17,7 @@ function MenuPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setCategories(demoCategories)
+      setCategories(getDemoCategories())
       setLoading(false)
       return
     }
@@ -47,7 +47,9 @@ function MenuPageContent() {
         restaurantId: "demo-1",
         items: [],
       }
-      setCategories([...categories, category])
+      const updated = [...categories, category]
+      setCategories(updated)
+      setDemoCategories(updated)
       setNewCategory("")
       return
     }
@@ -117,11 +119,7 @@ function MenuPageContent() {
               </div>
             )}
 
-            <AddItemForm categoryId={category.id} isDemo={isDemo} onAdd={(item) => {
-              setCategories(categories.map((c: any) => 
-                c.id === category.id ? { ...c, items: [...c.items, item] } : c
-              ))
-            }} />
+            <AddItemForm categoryId={category.id} isDemo={isDemo} categories={categories} setCategories={setCategories} />
           </div>
         ))}
       </div>
@@ -137,7 +135,7 @@ export default function MenuPage() {
   )
 }
 
-function AddItemForm({ categoryId, onAdd, isDemo }: { categoryId: string, onAdd: (item: any) => void, isDemo?: boolean }) {
+function AddItemForm({ categoryId, isDemo, categories, setCategories }: { categoryId: string, isDemo?: boolean, categories: any[], setCategories: (c: any[]) => void }) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
@@ -146,16 +144,21 @@ function AddItemForm({ categoryId, onAdd, isDemo }: { categoryId: string, onAdd:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const item = {
+      id: "demo-item-" + Date.now(),
+      categoryId,
+      name,
+      description,
+      price: parseFloat(price),
+      image,
+    }
+
     if (isDemo) {
-      const item = {
-        id: "demo-item-" + Date.now(),
-        categoryId,
-        name,
-        description,
-        price: parseFloat(price),
-        image,
-      }
-      onAdd(item)
+      const updated = categories.map((c: any) => 
+        c.id === categoryId ? { ...c, items: [...c.items, item] } : c
+      )
+      setCategories(updated)
+      setDemoCategories(updated)
       setName("")
       setDescription("")
       setPrice("")
@@ -170,8 +173,11 @@ function AddItemForm({ categoryId, onAdd, isDemo }: { categoryId: string, onAdd:
     })
 
     if (res.ok) {
-      const item = await res.json()
-      onAdd(item)
+      const newItem = await res.json()
+      const updated = categories.map((c: any) => 
+        c.id === categoryId ? { ...c, items: [...c.items, newItem] } : c
+      )
+      setCategories(updated)
       setName("")
       setDescription("")
       setPrice("")

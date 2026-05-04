@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useDemoMode } from "@/lib/demo"
-import { demoOrders } from "@/lib/demoData"
+import { getDemoOrders, setDemoOrders } from "@/lib/demoData"
 
 function OrdersPageContent() {
   const searchParams = useSearchParams()
@@ -16,7 +16,7 @@ function OrdersPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setOrders(demoOrders)
+      setOrders(getDemoOrders())
       setLoading(false)
       return
     }
@@ -38,9 +38,9 @@ function OrdersPageContent() {
 
   const updateStatus = async (orderId: string, status: string) => {
     if (isDemo) {
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-      )
+      const updated = orders.map((o) => (o.id === orderId ? { ...o, status } : o))
+      setOrders(updated)
+      setDemoOrders(updated)
       return
     }
     const res = await fetch(`/api/orders/${orderId}`, {
