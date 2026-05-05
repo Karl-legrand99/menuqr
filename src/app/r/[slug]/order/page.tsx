@@ -227,6 +227,8 @@ export default function OrderPage() {
       setOrderId(newOrderId)
       setOrderSuccess(true)
       setSubmitting(false)
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
 
