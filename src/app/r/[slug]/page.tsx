@@ -29,7 +29,9 @@ export default function PublicMenuPage() {
       return
     }
 
-    fetch(`/api/menu/${slug}`)
+    fetch(`/api/menu/${slug}`, {
+      headers: isDemo ? { "x-demo-mode": "true" } : {},
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {
@@ -87,15 +89,20 @@ export default function PublicMenuPage() {
             })),
         }))
 
-        setRestaurant({
-          ...restaurantData,
-          primaryColor: restaurantData.primary_color || "#FF6B35",
-          secondaryColor: restaurantData.secondary_color || "#2C3E50",
-          orderEnabled: restaurantData.order_enabled ?? true,
-          categories,
-        })
-        setLoading(false)
-        return
+        // If Supabase has items, use them. Otherwise fallback to mock data.
+        const hasItems = categories.some((cat: any) => cat.items && cat.items.length > 0)
+        if (hasItems) {
+          setRestaurant({
+            ...restaurantData,
+            primaryColor: restaurantData.primary_color || "#FF6B35",
+            secondaryColor: restaurantData.secondary_color || "#2C3E50",
+            orderEnabled: restaurantData.order_enabled ?? true,
+            categories,
+          })
+          setLoading(false)
+          return
+        }
+        // Fall through to mock fallback if no items
       }
     } catch (err) {
       console.error("Supabase demo load error:", err)

@@ -77,6 +77,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/qr", label: "QR Code" },
   ]
 
+  const demoParam = isDemo ? "?demo=true" : ""
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation responsive */}
@@ -90,15 +92,15 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
             {/* Desktop nav - explicit media query via style tag */}
             <div className="desktop-nav items-center space-x-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-gray-700 hover:text-orange-500 text-sm"
-                >
-                  {link.label}
-                </a>
-              ))}
+                {navLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={`${link.href}${demoParam}`}
+                    className="text-gray-700 hover:text-orange-500 text-sm"
+                  >
+                    {link.label}
+                  </a>
+                ))}
               {isDemo && (
                 <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
                   Mode Démo
@@ -128,16 +130,16 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           {mobileMenuOpen && (
             <div className="mobile-drawer pb-4">
               <div className="flex flex-col space-y-2">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="text-gray-700 hover:text-orange-500 hover:bg-gray-50 px-3 py-2 rounded text-sm"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </a>
-                ))}
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={`${link.href}${demoParam}`}
+                  className="text-gray-700 hover:text-orange-500 hover:bg-gray-50 px-3 py-2 rounded text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))}
                 {isDemo && (
                   <span className="bg-green-100 text-green-800 px-3 py-2 rounded text-xs w-fit">
                     Mode Démo

@@ -40,7 +40,9 @@ export default function ReservationPage() {
     }
 
     if (slug) {
-      fetch(`/api/menu/${slug}`)
+      fetch(`/api/menu/${slug}`, {
+        headers: isDemo ? { "x-demo-mode": "true" } : {},
+      })
         .then((res) => res.json())
         .then((menuData) => {
           if (menuData.error) {

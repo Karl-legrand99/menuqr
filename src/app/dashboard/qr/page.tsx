@@ -129,7 +129,7 @@ function QRCodePageContent() {
           </p>
           
           <p className="text-sm text-gray-500 mb-6">
-            URL: menuqr.fr/r/{restaurant?.slug}
+            URL: {typeof window !== "undefined" ? window.location.origin : "https://menuqr-ten.vercel.app"}/r/{restaurant?.slug}{isDemo ? "?demo=true" : ""}
           </p>
 
           <div className="flex justify-center gap-4">

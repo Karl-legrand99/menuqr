@@ -22,7 +22,7 @@ export default function NewRestaurantPage() {
     setLoading(true)
     setError("")
 
-    const isDemo = localStorage.getItem("demo-mode") === "true"
+    const isDemo = localStorage.getItem("demo-mode") === "true" || new URLSearchParams(window.location.search).get("demo") === "true"
 
     const res = await fetch("/api/restaurant", {
       method: "POST",

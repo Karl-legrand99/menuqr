@@ -7,9 +7,19 @@ export function useDemoMode() {
   const [checked, setChecked] = useState(false)
 
   useEffect(() => {
-    const demo = localStorage.getItem("demo-mode") === "true"
+    // Check both URL param and localStorage
+    const urlParams = new URLSearchParams(window.location.search)
+    const urlDemo = urlParams.get("demo") === "true"
+    const lsDemo = localStorage.getItem("demo-mode") === "true"
+    const demo = urlDemo || lsDemo
+    
     setIsDemo(demo)
     setChecked(true)
+    
+    // Sync URL demo to localStorage
+    if (urlDemo) {
+      localStorage.setItem("demo-mode", "true")
+    }
   }, [])
 
   return { isDemo, checked }
