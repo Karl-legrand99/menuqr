@@ -2,13 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { SkeletonCard, SkeletonText } from "@/components/Skeleton"
 import { useDemoMode } from "@/lib/demo"
 import { demoAnalytics } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 function AnalyticsPageContent() {
   const searchParams = useSearchParams()
-  const restaurantId = searchParams.get("restaurant")
+  const restaurantId = searchParams.get("restaurant") || "2dfc6711-a74d-4249-ac2d-63137c2c308c"
   const { isDemo, checked } = useDemoMode()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -16,8 +16,7 @@ function AnalyticsPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setData(demoAnalytics)
-      setLoading(false)
+      fetchSupabaseAnalytics()
       return
     }
     if (restaurantId) {
@@ -43,16 +42,116 @@ function AnalyticsPageContent() {
     }
   }, [restaurantId, isDemo, checked])
 
+  async function fetchSupabaseAnalytics() {
+    try {
+      // Fetch restaurant slug first
+      const { data: restaurantData, error: restError } = await supabase
+        .from("restaurants")
+        .select("slug")
+        .eq("id", restaurantId)
+        .single()
+
+      if (restError || !restaurantData) {
+        setData(demoAnalytics)
+        setLoading(false)
+        return
+      }
+
+      const slug = restaurantData.slug
+
+      // Total views
+      const { count: totalViews, error: totalError } = await supabase
+        .from("menu_views")
+        .select("*", { count: "exact", head: true })
+        .eq("restaurant_id", restaurantId)
+
+      // Views today
+      const today = new Date().toISOString().split("T")[0]
+      const { count: viewsToday, error: todayError } = await supabase
+        .from("menu_views")
+        .select("*", { count: "exact", head: true })
+        .eq("restaurant_id", restaurantId)
+        .gte("created_at", today + "T00:00:00")
+
+      // Views this week
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { count: viewsThisWeek, error: weekError } = await supabase
+        .from("menu_views")
+        .select("*", { count: "exact", head: true })
+        .eq("restaurant_id", restaurantId)
+        .gte("created_at", weekAgo)
+
+      // Daily views (last 7 days)
+      const days = []
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date()
+        date.setDate(date.getDate() - i)
+        const dateStr = date.toISOString().split("T")[0]
+        const nextDate = new Date(date)
+        nextDate.setDate(nextDate.getDate() + 1)
+        const { count } = await supabase
+          .from("menu_views")
+          .select("*", { count: "exact", head: true })
+          .eq("restaurant_id", restaurantId)
+          .gte("created_at", dateStr + "T00:00:00")
+          .lt("created_at", nextDate.toISOString().split("T")[0] + "T00:00:00")
+        days.push({ date: dateStr, views: count || 0 })
+      }
+
+      // Popular items
+      const { data: viewsData, error: viewsError } = await supabase
+        .from("menu_views")
+        .select("item_id")
+        .eq("restaurant_id", restaurantId)
+        .not("item_id", "is", null)
+
+      let popularItems: any[] = []
+      if (viewsData && viewsData.length > 0) {
+        const itemCounts: Record<string, number> = {}
+        viewsData.forEach((v: any) => {
+          itemCounts[v.item_id] = (itemCounts[v.item_id] || 0) + 1
+        })
+        const sorted = Object.entries(itemCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+
+        const itemIds = sorted.map(([id]) => id)
+        const { data: itemsData } = await supabase
+          .from("items")
+          .select("id, name")
+          .in("id", itemIds)
+
+        popularItems = sorted.map(([itemId, views]) => ({
+          itemId,
+          views,
+          name: itemsData?.find((i: any) => i.id === itemId)?.name || "Inconnu",
+        }))
+      }
+
+      setData({
+        totalViews: totalViews || 0,
+        viewsToday: viewsToday || 0,
+        viewsThisWeek: viewsThisWeek || 0,
+        dailyViews: days,
+        popularItems,
+      })
+    } catch (err) {
+      console.error("Supabase analytics error:", err)
+      setData(demoAnalytics)
+    }
+    setLoading(false)
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <SkeletonText lines={1} />
+        <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3"></div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
+          <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
         </div>
-        <SkeletonCard />
+        <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
       </div>
     )
   }
@@ -130,5 +229,18 @@ function AnalyticsPageContent() {
 }
 
 export default function AnalyticsPage() {
-  return <AnalyticsPageContent />
+  return (
+    <Suspense fallback={
+      <div className="space-y-6">
+        <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </div>
+    }>
+      <AnalyticsPageContent />
+    </Suspense>
+  )
 }

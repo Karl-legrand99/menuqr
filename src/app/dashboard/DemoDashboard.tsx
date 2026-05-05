@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { getDemoRestaurants, setDemoRestaurants } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 export default function DemoDashboard() {
   const [restaurants, setRestaurants] = useState<any[]>([])
@@ -9,9 +11,12 @@ export default function DemoDashboard() {
 
   useEffect(() => {
     const isDemo = localStorage.getItem("demo-mode") === "true"
-    fetch("/api/restaurant", {
-      headers: isDemo ? { "x-demo-mode": "true" } : {}
-    })
+    if (isDemo) {
+      loadDemoRestaurants()
+      return
+    }
+
+    fetch("/api/restaurant")
       .then((res) => res.json())
       .then((data) => {
         setRestaurants(Array.isArray(data) ? data : [])
@@ -22,6 +27,38 @@ export default function DemoDashboard() {
         setLoading(false)
       })
   }, [])
+
+  async function loadDemoRestaurants() {
+    try {
+      // Try Supabase first
+      const { data, error } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("user_id", "demo-user")
+        .order("created_at", { ascending: false })
+
+      if (!error && data && data.length > 0) {
+        const mapped = data.map((r: any) => ({
+          ...r,
+          primaryColor: r.primary_color || "#FF6B35",
+          secondaryColor: r.secondary_color || "#2C3E50",
+          orderEnabled: r.order_enabled ?? true,
+        }))
+        setRestaurants(mapped)
+        // Also persist to localStorage for offline fallback
+        setDemoRestaurants(mapped)
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error("Supabase demo restaurants error:", err)
+    }
+
+    // Fallback to localStorage
+    const local = getDemoRestaurants()
+    setRestaurants(local)
+    setLoading(false)
+  }
 
   if (loading) return <div className="text-center py-10">Chargement...</div>
 
@@ -67,7 +104,7 @@ export default function DemoDashboard() {
                   Commandes
                 </Link>
                 <Link
-                  href={`/r/${restaurant.slug}`}
+                  href={`/r/${restaurant.slug}${localStorage.getItem("demo-mode") === "true" ? "?demo=true" : ""}`}
                   target="_blank"
                   className="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 text-sm"
                 >

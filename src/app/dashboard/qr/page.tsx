@@ -4,10 +4,12 @@ import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useDemoMode } from "@/lib/demo"
 import { demoRestaurant } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
+import QRCode from "qrcode"
 
 function QRCodePageContent() {
   const searchParams = useSearchParams()
-  const restaurantId = searchParams.get("restaurant")
+  const restaurantId = searchParams.get("restaurant") || "2dfc6711-a74d-4249-ac2d-63137c2c308c"
   const { isDemo, checked } = useDemoMode()
   const [qrCode, setQrCode] = useState("")
   const [restaurant, setRestaurant] = useState<any>(null)
@@ -16,36 +18,7 @@ function QRCodePageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setRestaurant(demoRestaurant)
-      // Generate a simple QR code data URL for demo
-      const canvas = document.createElement("canvas")
-      canvas.width = 256
-      canvas.height = 256
-      const ctx = canvas.getContext("2d")
-      if (ctx) {
-        ctx.fillStyle = "white"
-        ctx.fillRect(0, 0, 256, 256)
-        ctx.fillStyle = "black"
-        const cellSize = 8
-        for (let y = 0; y < 32; y++) {
-          for (let x = 0; x < 32; x++) {
-            if (Math.random() > 0.5) {
-              ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize)
-            }
-          }
-        }
-        // Add finder patterns corners
-        const drawFinder = (cx: number, cy: number) => {
-          ctx.fillRect(cx, cy, 7 * cellSize, 7 * cellSize)
-          ctx.clearRect(cx + cellSize, cy + cellSize, 5 * cellSize, 5 * cellSize)
-          ctx.fillRect(cx + 2 * cellSize, cy + 2 * cellSize, 3 * cellSize, 3 * cellSize)
-        }
-        drawFinder(0, 0)
-        drawFinder(25 * cellSize, 0)
-        drawFinder(0, 25 * cellSize)
-        setQrCode(canvas.toDataURL("image/png"))
-      }
-      setLoading(false)
+      loadDemoQR()
       return
     }
     if (restaurantId) {
@@ -70,6 +43,69 @@ function QRCodePageContent() {
       setLoading(false)
     }
   }, [restaurantId, isDemo, checked])
+
+  async function loadDemoQR() {
+    try {
+      const { data, error } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("id", restaurantId)
+        .single()
+
+      if (!error && data) {
+        const mapped = {
+          ...data,
+          primaryColor: data.primary_color || "#FF6B35",
+          secondaryColor: data.secondary_color || "#2C3E50",
+        }
+        setRestaurant(mapped)
+        const menuUrl = `${typeof window !== "undefined" ? window.location.origin : "https://menuqr-ten.vercel.app"}/r/${data.slug}?demo=true`
+        const qrDataUrl = await QRCode.toDataURL(menuUrl, {
+          width: 400,
+          margin: 2,
+          color: {
+            dark: mapped.primaryColor,
+            light: "#FFFFFF",
+          },
+        })
+        setQrCode(qrDataUrl)
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error("Supabase QR error:", err)
+    }
+
+    // Fallback
+    setRestaurant(demoRestaurant)
+    const canvas = document.createElement("canvas")
+    canvas.width = 256
+    canvas.height = 256
+    const ctx = canvas.getContext("2d")
+    if (ctx) {
+      ctx.fillStyle = "white"
+      ctx.fillRect(0, 0, 256, 256)
+      ctx.fillStyle = "black"
+      const cellSize = 8
+      for (let y = 0; y < 32; y++) {
+        for (let x = 0; x < 32; x++) {
+          if (Math.random() > 0.5) {
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize)
+          }
+        }
+      }
+      const drawFinder = (cx: number, cy: number) => {
+        ctx.fillRect(cx, cy, 7 * cellSize, 7 * cellSize)
+        ctx.clearRect(cx + cellSize, cy + cellSize, 5 * cellSize, 5 * cellSize)
+        ctx.fillRect(cx + 2 * cellSize, cy + 2 * cellSize, 3 * cellSize, 3 * cellSize)
+      }
+      drawFinder(0, 0)
+      drawFinder(25 * cellSize, 0)
+      drawFinder(0, 25 * cellSize)
+      setQrCode(canvas.toDataURL("image/png"))
+    }
+    setLoading(false)
+  }
 
   const downloadQR = () => {
     const link = document.createElement("a")
@@ -104,7 +140,7 @@ function QRCodePageContent() {
               Télécharger PNG
             </button>
             <a
-              href={`/r/${restaurant?.slug}`}
+              href={`/r/${restaurant?.slug}${isDemo ? "?demo=true" : ""}`}
               target="_blank"
               className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200"
             >

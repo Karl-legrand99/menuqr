@@ -59,23 +59,46 @@ export async function POST(req: Request) {
   const body = await req.json()
   const { name, slug, description, address, phone, primaryColor, secondaryColor } = body
 
-  // En mode démo, pas de DB — retourne un mock
+  // En mode démo, insérer dans Supabase
   if (isDemo) {
-    const mockRestaurant = {
-      id: "demo-" + Date.now(),
-      name,
-      slug,
-      description,
-      address: address || "",
-      phone: phone || "",
-      primaryColor: primaryColor || "#FF6B35",
-      secondaryColor: secondaryColor || "#2C3E50",
-      userId: "demo-user",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      categories: [],
+    try {
+      const { data, error } = await supabase
+        .from("restaurants")
+        .insert({
+          name,
+          slug,
+          description,
+          address: address || "",
+          phone: phone || "",
+          primary_color: primaryColor || "#FF6B35",
+          secondary_color: secondaryColor || "#2C3E50",
+          user_id: "demo-user"
+        })
+        .select()
+        .single()
+      
+      if (error) throw error
+      
+      return NextResponse.json(data)
+    } catch (err) {
+      console.error("Supabase insert error:", err)
+      // Fallback mock si Supabase échoue
+      const mockRestaurant = {
+        id: "demo-" + Date.now(),
+        name,
+        slug,
+        description,
+        address: address || "",
+        phone: phone || "",
+        primaryColor: primaryColor || "#FF6B35",
+        secondaryColor: secondaryColor || "#2C3E50",
+        userId: "demo-user",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        categories: [],
+      }
+      return NextResponse.json(mockRestaurant)
     }
-    return NextResponse.json(mockRestaurant)
   }
 
   const existing = await prisma.restaurant.findUnique({ where: { slug } })

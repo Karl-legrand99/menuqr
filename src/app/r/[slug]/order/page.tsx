@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { demoRestaurant, getDemoCategories, demoTables } from "@/lib/demoData"
+import { demoRestaurant, getDemoCategories, getDemoRestaurants } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 interface OrderItem {
   id: string
@@ -37,21 +38,7 @@ export default function OrderPage() {
     }
 
     if (isDemo) {
-      const persistedCategories = getDemoCategories()
-      const demoData = {
-        ...demoRestaurant,
-        categories: persistedCategories.map((cat: any) => ({
-          ...cat,
-          items: cat.items.map((item: any) => ({
-            ...item,
-            allergens: [],
-            isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",
-            isAvailable: true,
-          })),
-        })),
-      }
-      setRestaurant(demoData)
-      setLoading(false)
+      loadDemoRestaurant(slug)
       return
     }
 
@@ -69,6 +56,92 @@ export default function OrderPage() {
         setLoading(false)
       })
   }, [slug, isDemo])
+
+  async function loadDemoRestaurant(slug: string) {
+    try {
+      const { data: restaurantData, error: restError } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("slug", slug)
+        .single()
+
+      if (!restError && restaurantData) {
+        const { data: categoriesData } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("restaurant_id", restaurantData.id)
+          .order("sort_order", { ascending: true })
+
+        const categoryIds = categoriesData?.map((c: any) => c.id) || []
+        const { data: itemsData } = await supabase
+          .from("items")
+          .select("*")
+          .in("category_id", categoryIds)
+          .eq("is_available", true)
+
+        const categories = (categoriesData || []).map((cat: any) => ({
+          ...cat,
+          items: (itemsData || [])
+            .filter((item: any) => item.category_id === cat.id)
+            .map((item: any) => ({
+              ...item,
+              allergens: [],
+              isHighlighted: item.popular || false,
+              isAvailable: true,
+            })),
+        }))
+
+        setRestaurant({
+          ...restaurantData,
+          primaryColor: restaurantData.primary_color || "#FF6B35",
+          secondaryColor: restaurantData.secondary_color || "#2C3E50",
+          orderEnabled: restaurantData.order_enabled ?? true,
+          categories,
+        })
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error("Supabase demo load error:", err)
+    }
+
+    // Fallback localStorage / mock
+    const persistedRestaurants = getDemoRestaurants()
+    const localRestaurant = persistedRestaurants.find((r: any) => r.slug === slug)
+    const persistedCategories = getDemoCategories()
+
+    if (localRestaurant) {
+      setRestaurant({
+        ...localRestaurant,
+        primaryColor: localRestaurant.primaryColor || "#FF6B35",
+        secondaryColor: localRestaurant.secondaryColor || "#2C3E50",
+        orderEnabled: localRestaurant.orderEnabled ?? true,
+        categories: persistedCategories.map((cat: any) => ({
+          ...cat,
+          items: cat.items.map((item: any) => ({
+            ...item,
+            allergens: [],
+            isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",
+            isAvailable: true,
+          })),
+        })),
+      })
+    } else {
+      setRestaurant({
+        ...demoRestaurant,
+        categories: persistedCategories.map((cat: any) => ({
+          ...cat,
+          items: cat.items.map((item: any) => ({
+            ...item,
+            allergens: [],
+            isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",
+            isAvailable: true,
+          })),
+        })),
+      })
+    }
+    setLoading(false)
+  }
 
   const addToCart = (item: any) => {
     setCart((prev) => {

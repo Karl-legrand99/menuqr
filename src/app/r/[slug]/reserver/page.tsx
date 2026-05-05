@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { demoRestaurant, getDemoReservations, setDemoReservations, demoTables } from "@/lib/demoData"
+import { demoRestaurant, getDemoReservations, setDemoReservations, getDemoRestaurants, demoTables } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 export default function ReservationPage() {
   const params = useParams()
@@ -34,9 +35,7 @@ export default function ReservationPage() {
     }
 
     if (isDemo) {
-      setRestaurant(demoRestaurant)
-      setTables(demoTables)
-      setLoading(false)
+      loadDemoRestaurant(slug)
       return
     }
 
@@ -67,6 +66,52 @@ export default function ReservationPage() {
         })
     }
   }, [slug, isDemo])
+
+  async function loadDemoRestaurant(slug: string) {
+    try {
+      const { data: restaurantData, error: restError } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("slug", slug)
+        .single()
+
+      if (!restError && restaurantData) {
+        const { data: tablesData } = await supabase
+          .from("tables")
+          .select("*")
+          .eq("restaurant_id", restaurantData.id)
+          .eq("is_active", true)
+
+        setRestaurant({
+          ...restaurantData,
+          primaryColor: restaurantData.primary_color || "#FF6B35",
+          secondaryColor: restaurantData.secondary_color || "#2C3E50",
+          orderEnabled: restaurantData.order_enabled ?? true,
+        })
+        setTables(tablesData || [])
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error("Supabase demo load error:", err)
+    }
+
+    // Fallback localStorage / mock
+    const persistedRestaurants = getDemoRestaurants()
+    const localRestaurant = persistedRestaurants.find((r: any) => r.slug === slug)
+
+    if (localRestaurant) {
+      setRestaurant({
+        ...localRestaurant,
+        primaryColor: localRestaurant.primaryColor || "#FF6B35",
+        secondaryColor: localRestaurant.secondaryColor || "#2C3E50",
+      })
+    } else {
+      setRestaurant(demoRestaurant)
+    }
+    setTables(demoTables)
+    setLoading(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

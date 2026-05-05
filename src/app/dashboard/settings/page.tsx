@@ -3,11 +3,12 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useDemoMode } from "@/lib/demo"
-import { demoRestaurant, demoSubscription } from "@/lib/demoData"
+import { demoRestaurant, demoSubscription, getDemoRestaurants, setDemoRestaurants } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 function SettingsPageContent() {
   const searchParams = useSearchParams()
-  const restaurantId = searchParams.get("restaurant")
+  const restaurantId = searchParams.get("restaurant") || "2dfc6711-a74d-4249-ac2d-63137c2c308c"
   const { isDemo, checked } = useDemoMode()
   const [restaurant, setRestaurant] = useState<any>(null)
   const [subscription, setSubscription] = useState<any>(null)
@@ -19,9 +20,7 @@ function SettingsPageContent() {
   useEffect(() => {
     if (!checked) return
     if (isDemo) {
-      setRestaurant(demoRestaurant)
-      setSubscription(demoSubscription)
-      setLoading(false)
+      loadDemoSettings()
       return
     }
     if (restaurantId) {
@@ -48,15 +47,69 @@ function SettingsPageContent() {
       .catch(() => {})
   }, [restaurantId, isDemo, checked])
 
+  async function loadDemoSettings() {
+    try {
+      const { data, error } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("id", restaurantId)
+        .single()
+
+      if (!error && data) {
+        const mapped = {
+          ...data,
+          primaryColor: data.primary_color || "#FF6B35",
+          secondaryColor: data.secondary_color || "#2C3E50",
+          orderEnabled: data.order_enabled ?? true,
+          isActive: data.is_active ?? true,
+        }
+        setRestaurant(mapped)
+        setSubscription(demoSubscription)
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error("Supabase settings error:", err)
+    }
+
+    // Fallback to localStorage / mock
+    const persisted = getDemoRestaurants()
+    const local = persisted.find((r: any) => r.id === restaurantId)
+    setRestaurant(local || demoRestaurant)
+    setSubscription(demoSubscription)
+    setLoading(false)
+  }
+
   const handleToggleOrder = async () => {
     if (!restaurant) return
     setSaving(true)
     setMessage("")
 
     if (isDemo) {
-      const updated = { ...restaurant, orderEnabled: !restaurant.orderEnabled }
-      setRestaurant(updated)
-      setMessage(updated.orderEnabled ? "Commandes en ligne activées !" : "Commandes en ligne désactivées.")
+      try {
+        const { error } = await supabase
+          .from("restaurants")
+          .update({ order_enabled: !restaurant.orderEnabled })
+          .eq("id", restaurantId)
+
+        if (error) throw error
+
+        const updated = { ...restaurant, orderEnabled: !restaurant.orderEnabled }
+        setRestaurant(updated)
+        setMessage(updated.orderEnabled ? "Commandes en ligne activées !" : "Commandes en ligne désactivées.")
+      } catch (err) {
+        console.error("Error toggling order:", err)
+        const updated = { ...restaurant, orderEnabled: !restaurant.orderEnabled }
+        setRestaurant(updated)
+        // Persist to localStorage
+        const persisted = getDemoRestaurants()
+        const idx = persisted.findIndex((r: any) => r.id === restaurantId)
+        if (idx >= 0) {
+          persisted[idx] = updated
+          setDemoRestaurants(persisted)
+        }
+        setMessage(updated.orderEnabled ? "Commandes en ligne activées !" : "Commandes en ligne désactivées.")
+      }
       setSaving(false)
       return
     }

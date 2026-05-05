@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   categories: "menuqr-demo-categories",
   orders: "menuqr-demo-orders",
   reservations: "menuqr-demo-reservations",
+  restaurants: "menuqr-demo-restaurants",
 }
 
 const defaultCategories = [
@@ -183,6 +184,20 @@ export function getDemoReservations() {
 
 export function setDemoReservations(reservations: any[]) {
   saveToStorage(STORAGE_KEYS.reservations, reservations)
+}
+
+// --- Restaurants localStorage ---
+export function getDemoRestaurants() {
+  return loadFromStorage(STORAGE_KEYS.restaurants, [demoRestaurant])
+}
+
+export function setDemoRestaurants(restaurants: any[]) {
+  saveToStorage(STORAGE_KEYS.restaurants, restaurants)
+}
+
+export function addDemoRestaurant(restaurant: any) {
+  const current = getDemoRestaurants()
+  setDemoRestaurants([...current, restaurant])
 }
 
 // --- Backward-compatible exports (used by non-persisted pages) ---

@@ -1,5 +1,28 @@
 # MenuQR Changelog
 
+## v0.5.2 — 2026-05-05
+
+### ✅ Dashboard complet connecté à Supabase
+- **Analytics** : vues totales, vues aujourd'hui, vues cette semaine, graphique 7 jours, plats populaires — tous fetchés depuis Supabase
+- **Paramètres** : infos restaurant chargées depuis Supabase, toggle commandes en ligne persistant en DB
+- **QR Code** : QR code généré avec vraie URL du restaurant depuis Supabase, téléchargement PNG fonctionnel
+- **Fallbacks** : toutes les pages retombent sur localStorage/mock si Supabase est indisponible
+
+## v0.5.1 — 2026-05-04
+
+### ✅ Dashboard pages connectées à Supabase
+- **Menu** : catégories et plats fetchés depuis Supabase, ajout/suppression fonctionnels
+- **Commandes** : fetch depuis Supabase avec order_items, changement de statut persistant
+- **Réservations** : fetch depuis Supabase avec tables, assignation de table persistante
+- **DemoDashboard** : restaurants fetchés depuis Supabase avec fallback localStorage
+
+## v0.5.0 — 2026-05-04
+
+### ✅ Supabase connecté
+- DB production avec tables : restaurants, categories, items, orders, order_items, reservations, tables, menu_views
+- Client Supabase configuré avec URL et clé anonyme
+- API routes et pages client utilisent Supabase en mode démo
+
 ## v0.4.2 — 2026-05-04
 
 ### ✅ Persistance localStorage en mode démo

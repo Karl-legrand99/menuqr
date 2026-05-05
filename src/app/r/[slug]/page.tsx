@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { demoRestaurant, getDemoCategories } from "@/lib/demoData"
+import { demoRestaurant, getDemoCategories, getDemoRestaurants } from "@/lib/demoData"
+import { supabase } from "@/lib/supabase"
 
 export default function PublicMenuPage() {
   const params = useParams()
@@ -23,9 +24,108 @@ export default function PublicMenuPage() {
     }
 
     if (isDemo) {
-      // Use persisted demo data from localStorage
+      // Try Supabase first, then fallback to localStorage / mock
+      loadDemoRestaurant(slug)
+      return
+    }
+
+    fetch(`/api/menu/${slug}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          setRestaurant(null)
+        } else {
+          setRestaurant(data)
+        }
+        setLoading(false)
+        // Track menu view
+        fetch(`/api/analytics/${slug}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }).catch(() => {})
+      })
+      .catch(() => {
+        setRestaurant(null)
+        setLoading(false)
+      })
+  }, [slug, isDemo])
+
+  async function loadDemoRestaurant(slug: string) {
+    try {
+      // 1. Try Supabase
+      const { data: restaurantData, error: restError } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("slug", slug)
+        .single()
+
+      if (!restError && restaurantData) {
+        // Fetch categories + items
+        const { data: categoriesData } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("restaurant_id", restaurantData.id)
+          .order("sort_order", { ascending: true })
+
+        const categoryIds = categoriesData?.map((c: any) => c.id) || []
+        const { data: itemsData } = await supabase
+          .from("items")
+          .select("*")
+          .in("category_id", categoryIds)
+          .eq("is_available", true)
+
+        const categories = (categoriesData || []).map((cat: any) => ({
+          ...cat,
+          items: (itemsData || [])
+            .filter((item: any) => item.category_id === cat.id)
+            .map((item: any) => ({
+              ...item,
+              allergens: [],
+              isHighlighted: item.popular || false,
+              isAvailable: true,
+            })),
+        }))
+
+        setRestaurant({
+          ...restaurantData,
+          primaryColor: restaurantData.primary_color || "#FF6B35",
+          secondaryColor: restaurantData.secondary_color || "#2C3E50",
+          orderEnabled: restaurantData.order_enabled ?? true,
+          categories,
+        })
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error("Supabase demo load error:", err)
+    }
+
+    // 2. Fallback to localStorage / mock
+    const persistedRestaurants = getDemoRestaurants()
+    const localRestaurant = persistedRestaurants.find((r: any) => r.slug === slug)
+
+    if (localRestaurant) {
       const persistedCategories = getDemoCategories()
-      const demoData = {
+      setRestaurant({
+        ...localRestaurant,
+        primaryColor: localRestaurant.primaryColor || "#FF6B35",
+        secondaryColor: localRestaurant.secondaryColor || "#2C3E50",
+        orderEnabled: localRestaurant.orderEnabled ?? true,
+        categories: persistedCategories.map((cat: any) => ({
+          ...cat,
+          items: cat.items.map((item: any) => ({
+            ...item,
+            allergens: [],
+            isHighlighted: item.id === "demo-item-4" || item.id === "demo-item-7",
+            isAvailable: true,
+          })),
+        })),
+      })
+    } else {
+      // Ultimate fallback: hardcoded demo
+      const persistedCategories = getDemoCategories()
+      setRestaurant({
         ...demoRestaurant,
         categories: persistedCategories.map((cat: any) => ({
           ...cat,
@@ -36,26 +136,10 @@ export default function PublicMenuPage() {
             isAvailable: true,
           })),
         })),
-      }
-      setRestaurant(demoData)
-      setLoading(false)
-      return
-    }
-
-    fetch(`/api/menu/${slug}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setRestaurant(data)
-        setLoading(false)
-        // Track menu view
-        fetch(`/api/analytics/${slug}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        }).catch(() => {})
       })
-      .catch(() => setLoading(false))
-  }, [slug, isDemo])
+    }
+    setLoading(false)
+  }
 
   if (loading) {
     return (
