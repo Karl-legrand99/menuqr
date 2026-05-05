@@ -1,5 +1,14 @@
 # MenuQR Changelog
 
+## v0.5.3 — 2026-05-05 (en cours de déploiement)
+
+### ✅ Amélioration UX du flow de commande
+- **Panier sticky mobile** : barre sticky en haut sur mobile affichant le nombre d'articles et le total, avec bouton "Voir le panier" pour déplier le récapitulatif
+- **Page de succès** : après validation de la commande, affichage d'une page de confirmation avec ✅, récapitulatif détaillé, numéro de commande, et bouton "Retour au menu"
+- **Feedback visuel** : état `submitting` avec spinner, gestion des erreurs améliorée
+- **Desktop** : panier et formulaire restent sticky à droite avec `position: sticky`
+- **Responsive** : grille 1 colonne sur mobile, 2 colonnes sur desktop (`lg:grid-cols-2`)
+
 ## v0.5.2 — 2026-05-05
 
 ### ✅ Dashboard complet connecté à Supabase
